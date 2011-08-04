@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Emberwind</title>
+	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0"/>
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+	<link rel="apple-touch-icon-precomposed" href="icon_57x57.png" />
+	<link rel="apple-touch-icon-precomposed" sizes="72x72" href="icon_72x72.png" />
+	<link rel="apple-touch-icon-precomposed" sizes="114x114" href="icon_114x114.png" />
+
+	<link href='http://fonts.googleapis.com/css?family=Lobster&subset=latin&v2' rel='stylesheet' type='text/css'/>
+	<link href='http://fonts.googleapis.com/css?family=Allan:700&v2' rel='stylesheet' type='text/css'/>
+	<link href='http://fonts.googleapis.com/css?family=Meddon&v2' rel='stylesheet' type='text/css'/>
+
+	<script type="text/javascript" src="src/Common.js"></script>
+	<script type="text/javascript" src="src/Perlin.js"></script>
+
+	<script type="text/javascript" src="src/render/Render.js"></script>
+	<script type="text/javascript" src="src/render/RenderCanvas.js"></script>
+	<script type="text/javascript" src="src/render/RenderWebGL.js"></script>
+	<script type="text/javascript" src="src/render/Utils.js"></script>
+	<script type="text/javascript" src="src/render/glMatrix.js"></script>
+	<script type="text/javascript" src="src/render/webgl-utils.js"></script>
+
+	<script type="text/javascript" src="src/Audio.js"></script>
+	<script type="text/javascript" src="src/Animation.js"></script>
+	<script type="text/javascript" src="src/Collision.js"></script>
+	<script type="text/javascript" src="src/Movement.js"></script>
+	<script type="text/javascript" src="src/Trigger.js"></script>
+	<script type="text/javascript" src="src/ParticleSystem.js"></script>
+	<script type="text/javascript" src="src/GameObjects.js"></script>
+	<script type="text/javascript" src="src/HittableObject.js"></script>
+
+	<script type="text/javascript" src="src/PlayerCharacter.js"></script>
+	<script type="text/javascript" src="src/Gremlin.js"></script>
+	<script type="text/javascript" src="src/CaveEntrance.js"></script>
+	<script type="text/javascript" src="src/House.js"></script>
+	<script type="text/javascript" src="src/Pickup.js"></script>
+
+	<script type="text/javascript" src="src/ResourceClasses.js"></script>
+	<script type="text/javascript" src="src/ResourceDepot.js"></script>
+	<script type="text/javascript" src="src/Stage.js"></script>
+	<script type="text/javascript" src="src/StageClasses.js"></script>
+
+	<script type="text/javascript" src="src/GUIButtons.js"></script>
+	<script type="text/javascript" src="src/GUIHeadsUp.js"></script>
+	<script type="text/javascript" src="src/FSM.js"></script>
+	<script type="text/javascript" src="src/Game.js"></script>
+	<script type="text/javascript" src="src/Input.js"></script>
+	<script type="text/javascript" src="src/AppStates.js"></script>
+	<script type="text/javascript" src="src/App.js"></script>
+	<script type="text/javascript" src="src/GremlinStates.js"></script>
+	<script type="text/javascript" src="src/PCStates.js"></script>
+	<script type="text/javascript" src="src/Wick.js"></script>
+
+	<script type="text/javascript">
+		var app = null;
+
+		window.onload = function() {
+			utils.loadShaderXml("src/render/shaders.xml", null, function(shaders) {
+				if (shaders instanceof Exception) {
+					app = shaders;
+				} else {
+					try {
+						app = new App('canvas', shaders, null);
+					} catch (e) {
+						app = e;
+					}
+				}
+			});
+		};
+
+		function application() {
+			if (app == null) {
+				alert("Application is absent");
+				throw "no application";
+			} else if (app instanceof Exception) {
+				alert("An exception occured while creating the application:\n" + app.message);
+				throw app;
+			} else {
+				return app;
+			}
+		}
+	</script>
+
+	<style type="text/css">
+		body{
+			margin: 0px; padding: 0px; overflow: hidden;
+			background: #000;
+		}
+		#canvas-holder.active {
+			position: absolute;
+			padding: 0px;
+			left: 50%;
+			top: 50%;
+		}
+
+		#canvas-holder.inactive {
+			position: absolute;
+			top:50%;
+			width: 100%;
+			text-align: center;
+		}
+
+		#canvas {
+			padding: 0px;
+			width: 100%;
+			height: 100%;
+			color: #fff;
+		}
+	</style>
+</head>
+<body>
+<div id="canvas-holder" class="inactive">
+	<div id="canvas">Emberwind is loading...</div>
+</div>
+<div style="font-family: Lobster; visibility: hidden">one</div>
+<div style="font-family: Allan; visibility: hidden">two</div>
+<div style="font-family: Meddon; visibility: hidden">three</div>
+</body>
+</html>

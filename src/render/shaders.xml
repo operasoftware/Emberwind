@@ -1,0 +1,241 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<shaders>
+	<!-- Vertex Shaders -->
+	
+	<shader id="no-texture-vs" type="x-shader/x-vertex">
+		attribute vec2 aPosition;
+
+		uniform mat4 uMVMatrix;
+
+		void main() {
+			gl_Position = uMVMatrix * vec4(aPosition.xy, 0.0, 1.0);
+		}
+	</shader>
+	
+	<shader id="gradient-vs" type="x-shader/x-vertex">
+		attribute vec2 aPosition;
+		attribute vec4 aColor;
+
+		uniform mat4 uMVMatrix;
+		uniform bool uPremultiplied;
+		
+		varying vec4 vColor;
+
+		vec4 color() {
+			return uPremultiplied? vec4(aColor.rgb * aColor.a, aColor.a) : aColor;
+		}
+
+		void main() {
+			gl_Position = uMVMatrix * vec4(aPosition.xy, 0.0, 1.0);
+			vColor = color();
+		}
+	</shader>
+	
+	<shader id="texture-vs" type="x-shader/x-vertex">
+		attribute vec2 aPosition;
+		attribute vec2 aTextureCoordinates;
+
+		uniform mat4 uMVMatrix;
+
+		varying vec2 vTextureCoordinates;
+
+		void main() {
+			gl_Position = uMVMatrix * vec4(aPosition.xy, 0.0, 1.0);
+			vTextureCoordinates = aTextureCoordinates;
+		}
+	</shader>
+	
+	<shader id="caching-vs" type="x-shader/x-vertex">
+		attribute vec2 aPosition;
+		attribute vec2 aTextureCoordinates;
+
+		uniform mat4 uMVMatrix;
+
+		varying vec2 vTextureCoordinates;
+		
+		void main() {
+			gl_Position = uMVMatrix * vec4(aPosition.xy, 0.0, 1.0);
+			vTextureCoordinates = aTextureCoordinates;
+		}
+	</shader>
+	
+	<shader id="layer-vs" type="x-shader/x-vertex">
+		attribute vec2 aPosition;
+		attribute vec2 aTextureCoordinates;
+
+		uniform mat4 uMVMatrix;
+		uniform vec2 uOffset;
+
+		varying vec2 vTextureCoordinates;
+
+		void main() {
+			gl_Position = uMVMatrix * vec4(aPosition.xy + uOffset.xy, 0.0, 1.0);
+			vTextureCoordinates = aTextureCoordinates;
+		}
+	</shader>
+
+	<!-- Fragment Shaders -->
+
+	<shader id="no-texture-fs" type="x-shader/x-fragment">
+		#ifdef GL_ES
+		precision mediump float;
+		#endif
+		
+		uniform vec4 uColor;
+		uniform bool uPremultiplied;
+		
+		vec4 color() {
+			return uPremultiplied? vec4(uColor.rgb * uColor.a, uColor.a) : uColor;
+		}
+
+		void main(void) {
+			gl_FragColor = color();
+		}
+	</shader>
+
+	<shader id="gradient-fs" type="x-shader/x-fragment">
+		#ifdef GL_ES
+		precision mediump float;
+		#endif
+		
+		varying vec4 vColor;
+		
+		void main(void) {
+			gl_FragColor = vColor;
+		}
+	</shader>
+
+	<shader id="alpha-fs" type="x-shader/x-fragment">
+		#ifdef GL_ES
+		precision mediump float;
+		#endif
+		
+		uniform vec4 uColor;
+		uniform sampler2D uTexture;
+		uniform bool uPremultiplied;
+
+		varying vec2 vTextureCoordinates;
+
+		vec4 color() {
+			return uPremultiplied? vec4(uColor.rgb * uColor.a, uColor.a) : uColor;
+		}
+
+		void main(void) {
+			gl_FragColor = texture2D(uTexture, vTextureCoordinates) * color();
+		}
+	</shader>
+
+	<shader id="tint-fs" type="x-shader/x-fragment">
+		#ifdef GL_ES
+		precision mediump float;
+		#endif
+		
+		uniform vec4 uColor;
+		uniform sampler2D uTexture;
+		uniform bool uPremultiplied;
+
+		varying vec2 vTextureCoordinates;
+
+		void main(void) {
+			vec4 pixel = texture2D(uTexture, vTextureCoordinates);
+			vec4 result;
+			if (uPremultiplied) {
+				result = mix(pixel, uColor * pixel.a, uColor.a);
+			} else {
+				result = mix(pixel, uColor, uColor.a);
+			}
+			gl_FragColor = vec4(result.rgb, pixel.a);
+		}
+	</shader>
+
+	<shader id="caching-fs" type="x-shader/x-fragment">
+		#ifdef GL_ES
+		precision mediump float;
+		#endif
+		
+		uniform sampler2D uTexture;
+		
+		varying vec2 vTextureCoordinates;
+		
+		void main(void) {
+			gl_FragColor = texture2D(uTexture, vTextureCoordinates); 
+		}
+	</shader>
+	
+	<shader id="alpha-padding-fs" type="x-shader/x-fragment">
+		#ifdef GL_ES
+		precision mediump float;
+		#endif
+
+		uniform vec4 uColor;
+		uniform sampler2D uTexture;
+		uniform vec4 uClip;
+		uniform bool uPremultiplied;
+
+		varying vec2 vTextureCoordinates;
+
+		vec4 color() {
+			return uPremultiplied? vec4(uColor.rgb * uColor.a, uColor.a) : uColor;
+		}
+
+		bool is_visible(vec2 coordinates) {
+			return uClip.x &lt;= coordinates.x &amp;&amp; coordinates.x &lt;= uClip.z &amp;&amp;
+					uClip.w &lt;= coordinates.y &amp;&amp; coordinates.y &lt;= uClip.y;
+		} 
+
+		void main(void) {
+			if (is_visible(vTextureCoordinates)) {
+				gl_FragColor = texture2D(uTexture, vTextureCoordinates) * color();
+			} else {
+				gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+			}
+		}
+	</shader>
+
+	<shader id="tint-padding-fs" type="x-shader/x-fragment">
+		#ifdef GL_ES
+		precision mediump float;
+		#endif
+
+		uniform vec4 uColor;
+		uniform sampler2D uTexture;
+		uniform vec4 uClip;
+		uniform bool uPremultiplied;
+
+		varying vec2 vTextureCoordinates;
+
+		bool is_visible(vec2 coordinates) {
+			return uClip.x &lt;= coordinates.x &amp;&amp; coordinates.x &lt;= uClip.z &amp;&amp;
+					uClip.w &lt;= coordinates.y &amp;&amp; coordinates.y &lt;= uClip.y;
+		}
+
+		void main(void) {
+			if (is_visible(vTextureCoordinates)) {
+				vec4 pixel = texture2D(uTexture, vTextureCoordinates);
+				vec4 result;
+				if (uPremultiplied) {
+					result = mix(pixel, uColor * pixel.a, uColor.a);
+				} else {
+					result = mix(pixel, uColor, uColor.a);
+				}
+				gl_FragColor = vec4(result.rgb, pixel.a);
+			} else {
+				gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+			}
+		}
+	</shader>
+	
+	<shader id="layer-fs" type="x-shader/x-fragment">
+		#ifdef GL_ES
+		precision mediump float;
+		#endif
+		
+		uniform sampler2D uTexture;
+
+		varying vec2 vTextureCoordinates;
+
+		void main(void) {
+			gl_FragColor = texture2D(uTexture, vTextureCoordinates);
+		}
+	</shader>
+</shaders>
