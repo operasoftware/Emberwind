@@ -28,9 +28,11 @@ function Audio(host, callback) {
 
 	// Seeking is botched up in Chrome using anything but wav so temporarily we prefer that over ogg
 	// whenever it's available.
-	if (a.canPlayType && a.canPlayType('audio/wav').replace(/no/, '')) {
-		fileSuffix = ".wav";
-	} else if (a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"').replace(/no/, '')) {
+	//if (a.canPlayType && a.canPlayType('audio/wav').replace(/no/, '')) {
+	//	fileSuffix = ".wav";
+	//} else
+	// Only use wav when running locally.. they're huge.
+	if (a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"').replace(/no/, '')) {
 		fileSuffix = ".ogg";
 	} else if (a.canPlayType && a.canPlayType('audio/aac').replace(/no/, '')) {
 		fileSuffix = ".m4a";
