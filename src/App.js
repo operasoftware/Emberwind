@@ -18,7 +18,7 @@ function App(canvasId, shaders, initCallback) {
 	this.useTouch = false;
 	this.frontToBack = false;
 
-	this.debug = true;
+	this.debug = false;
 	this.debugKeyboardTimeout = 0;
 	this.debugAudio = false;
 	this.debugMovementTrigger = false;
