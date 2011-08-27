@@ -65,9 +65,9 @@ Stage.prototype.initStage = function(preloadCallback) {
 
 	this.layers = this.tileLayers.concat(this.spriteLayers);
 	this.layers.push(this.gameObjects);
-	if(this.backWaterLayer !== null)
+	if (this.backWaterLayer !== null)
 		this.layers.push(this.backWaterLayer);
-	if(this.foreWaterLayer !== null)
+	if (this.foreWaterLayer !== null)
 		this.layers.push(this.foreWaterLayer);
 	this.sortLayers();
 
@@ -80,9 +80,11 @@ Stage.prototype.initStage = function(preloadCallback) {
 
 	app.game.focus.spawnOnWick();
 
-	if(this.foreWaterLayer){
+	if (this.foreWaterLayer) {
 		var y = this.foreWaterLayer.y + 72;
-		this.gameObjects.children.forEach(function(o){o.setWaterLevel(y);});
+		this.gameObjects.children.forEach(function(o) {
+			o.setWaterLevel(y);
+		});
 		app.game.focus.setWaterLevel(y);
 	}
 };
@@ -110,11 +112,13 @@ Stage.prototype.loadResources = function(stageName, preloadCallback, preloads) {
 	var sr = this.res.stages[stageName];
 	preloads = preloads === undefined ? {} : preloads;
 
-	sr.preload.forEach(function(v) {preloads[v] = true;});
+	sr.preload.forEach(function(v) {
+		preloads[v] = true;
+	});
 
 	if (sr.referencestage !== undefined) {
 		this.loadResources(sr.referencestage, preloadCallback, preloads);
-	}else{
+	} else {
 		var preArr = [];
 		for (i in preloads) preArr.push(i);
 		ResourceLoader.getInstance().preloadImages(preArr, preloadCallback);
@@ -136,11 +140,11 @@ Stage.prototype.loadResources = function(stageName, preloadCallback, preloads) {
 		return new SpriteLayer(v);
 	}));
 
-	if(sr.backwater != undefined){
+	if (sr.backwater != undefined) {
 		this.backWaterLayer = new BackWaterLayer(sr.backwater);
 	}
 
-	if(sr.forewater != undefined){
+	if (sr.forewater != undefined) {
 		this.foreWaterLayer = new ForeWaterLayer(sr.forewater);
 	}
 
@@ -152,7 +156,7 @@ Stage.prototype.loadResources = function(stageName, preloadCallback, preloads) {
 	this.objectLayers = this.objectLayers.concat(sr.objectlayers);
 };
 
-Stage.prototype.createObjects = function(){
+Stage.prototype.createObjects = function() {
 	for (var i = 0; i < this.objectLayers.length; i++) {
 		var kindle = null;
 		var objects = this.objectLayers[i].objects;
@@ -184,12 +188,63 @@ Stage.prototype.createObjects = function(){
 				case "wick":
 					object = new Wick();
 					break;
+				case "villager":
+					object = new Villager();
+					break;
 				case "fireplace":
 					object = new Fireplace();
 					break;
 				case "pickup":
+					// TODO: Implement fireworks
+					// When enabling here, make sure to check in Game.prototype.spawnPickup as well
+					if (o.subtype === Pickup.Type.kPickupFireworks) {
+						continue;
+					}
 					object = new Pickup();
 					break;
+				case "tutorialtip":
+					object = new TutorialTip();
+					break;
+				case "applebasket":
+					object = new AppleBasket();
+					break;
+				case "chest":
+					object = new Chest();
+					break;
+				case "gremlinbasket":
+					object = new GremlinBasket();
+					break;
+				case "lamppost":
+					object = new Lamppost();
+					object.setStartPos(o.x, o.y);
+					object.onCreate(o);
+					this.objects.splice(0, 0, object); // Place it first so it doesn't conceal any other object.
+					continue;
+				case "objectgroup":
+					var type = o.childtype;
+
+					if (type !== "pickup") {
+						continue;
+					}
+					var offset = new Point2(o.x, o.y);
+					var handles = [ ];
+					for (var i = 0; i < o.subhandles.length; i += 2) {
+						handles.push(offset.addNew(new Point2(o.subhandles[i], o.subhandles[i + 1])));
+					}
+
+					Chaikin.subdivide(handles, 3);
+					var normals = [];
+					var points = Chaikin.getEvenlySpacedPoints(handles, o.childcount, normals);
+
+					var obj;
+					for (var k = 0; k < points.length; k++) {
+						obj = new Pickup();
+						obj.onCreate(o);
+						obj.setStartPos(points[k].x, points[k].y);
+						this.objects.push(obj);
+					}
+
+					continue;
 				default:
 					continue;
 			}
@@ -318,21 +373,21 @@ Stage.prototype.drawOther = function(frontToBack, render, x, y, timeSinceStart, 
 };
 
 Stage.prototype.drawBackgrounds = function(frontToBack, render, x, y) {
-	if(frontToBack) this.particleSystem.draw(render, x, y, false);
+	if (frontToBack) this.particleSystem.draw(render, x, y, false);
 	for (var i = 0; i < this.backgrounds.length; i++) {
 		var l = this.backgrounds[frontToBack ? this.backgrounds.length - 1 - i : i];
 		l.draw(render, x, y, this.gameplayExtent);
 	}
-	if(!frontToBack) this.particleSystem.draw(render, x, y, false);
+	if (!frontToBack) this.particleSystem.draw(render, x, y, false);
 };
 
 Stage.prototype.drawForegrounds = function(frontToBack, render, x, y) {
-	if(frontToBack) this.particleSystem.draw(render, x, y, true);
+	if (frontToBack) this.particleSystem.draw(render, x, y, true);
 	for (var i = 0; i < this.foregrounds.length; i++) {
 		var l = this.foregrounds[frontToBack ? this.foregrounds.length - 1 - i : i];
 		l.draw(render, x, y, this.gameplayExtent);
 	}
-	if(!frontToBack) this.particleSystem.draw(render, x, y, true);
+	if (!frontToBack) this.particleSystem.draw(render, x, y, true);
 };
 
 /**

@@ -1,18 +1,13 @@
 /**
  * Audio component
  *
- * @constructor
+ * @param [callback]
  */
-function Audio(host, callback) {
-	this.host = host;
+function Audio(callback) {
 	this.enabled = true;
 	this.player = new SoundPlayer(callback);
-
-	if (host.debug) {
-		this.player.showControls = true;
-	}
 	
-	if(navigator.userAgent.search(/iP(ad|od|hone)|Linux mips/i) != -1) {// todo: temporary mips
+	if(/iP(ad|od|hone)|Linux mips/i.test(navigator.userAgent)) {// todo: temporary mips
 		console.log("Audio disabled for iOS devices, see http://tinyurl.com/3sj2mtz");
 		this.disable(callback);
 
@@ -28,11 +23,9 @@ function Audio(host, callback) {
 
 	// Seeking is botched up in Chrome using anything but wav so temporarily we prefer that over ogg
 	// whenever it's available.
-	//if (a.canPlayType && a.canPlayType('audio/wav').replace(/no/, '')) {
-	//	fileSuffix = ".wav";
-	//} else
-	// Only use wav when running locally.. they're huge.
-	if (a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"').replace(/no/, '')) {
+	/*if (a.canPlayType && a.canPlayType('audio/wav').replace(/no/, '')) {
+		fileSuffix = ".wav";
+	} else*/ if (a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"').replace(/no/, '')) {
 		fileSuffix = ".ogg";
 	} else if (a.canPlayType && a.canPlayType('audio/aac').replace(/no/, '')) {
 		fileSuffix = ".m4a";
@@ -49,9 +42,11 @@ function Audio(host, callback) {
 	this.sfxFile = res.path + "audio/sfx" + fileSuffix;
 
 	this.player.AddChannel(this.musicFile, 0, this.musicVolume);
-	this.player.AddChannel(this.sfxFile, 1, 1);
-	this.player.AddChannel(this.sfxFile, 1, 1);
-	this.player.AddChannel(this.sfxFile, 1, 1);
+	// Use fewer channels on mobile devices.
+	var channels = /Opera mobile|Android|Windows (ce|phone)|Symbian|Fennec/i.test(navigator.userAgent) ? 1 : 7;
+	for(var c = 0; c < channels; c++){
+		this.player.AddChannel(this.sfxFile, 1, 1);
+	}
 
 	Audio.instance = this;
 }
@@ -68,7 +63,6 @@ Audio.getInstance = function() {
 
 Audio.prototype = {};
 Audio.prototype.constructor = Audio;
-
 
 /**
  * Disable the audio player
@@ -94,6 +88,13 @@ Audio.prototype.playFX = function (fx, loop) {
 		if (loop === undefined) loop = false;
 		return this.player.PlayFX(fx, loop, 1);
 	}
+};
+
+Audio.prototype.playDelayedFX = function(fx, delay, loop) {
+	var _this = this;
+	setTimeout(function() {
+		_this.playFX(fx, loop);
+	}, delay);
 };
 
 /**
@@ -128,6 +129,15 @@ Audio.prototype.stopSound = function (id) {
 Audio.prototype.setMusicVolume = function(level) {
 	if (this.enabled) {
 		this.player.setVolume(level * this.musicVolume, 0);
+	}
+};
+
+Audio.prototype.stopAllSoundFX = function(){
+	for (var i = 0; i < this.player.channels.length; i++) {
+		var channel = this.player.channels[i];
+		if(channel.category == 1){
+			channel.Stop();
+		}
 	}
 };
 

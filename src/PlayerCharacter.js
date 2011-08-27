@@ -53,7 +53,15 @@ function PlayerCharacter() {
 		PCStates.kStateSwing,  SwingState,
 		PCStates.kStateDamaged,    DamagedState,
 		PCStates.kStateKnockedOut, KnockedOutState,
-		PCStates.kStateJumpAttack, JumpAttackState
+		PCStates.kStateJumpAttack, JumpAttackState,
+		PCStates.kStateDialogueEvent, DialogueEventState,
+		PCStates.kStateBarrelRollStart, BarrelRollStartState,
+		PCStates.kStateBarrelRoll, BarrelRollState,
+		PCStates.kStateBarrelRollEnd, BarrelRollEndState,
+		PCStates.kStateStartShuffle, StartShuffleState,
+		PCStates.kStateShuffle, ShuffleState,
+		PCStates.kStateEndShuffle, EndShuffleState,
+		PCStates.kStateTurnShuffle, TurnShuffleState
 	];
 
 	this.hittableRect = new Rectf(-20, -60, 20, 0);
@@ -92,10 +100,14 @@ function PlayerCharacter() {
 
 	// TODO Temporary setting of PC:s max hitpoints
 	this.maxHits = 6;
+
+	this.lastLamppost = null;
 }
 
 PlayerCharacter.prototype = new HittableGameObject();
 PlayerCharacter.prototype.constructor = PlayerCharacter;
+
+PlayerCharacter.kBarrelRollSpeed = 360;
 
 /**
  * Build player collision geometry.
@@ -156,6 +168,8 @@ PlayerCharacter.prototype.init = function (reinit) {
 	this.climb = depot.getAnimation("KindleClimb");
 	this.sprintLeft = depot.getAnimation("KindleSprintLeft");
 	this.sprintRight = depot.getAnimation("KindleSprintRight");
+	this.barrelRollLeft = depot.getAnimation("KindleBarrelRollLeft");
+	this.barrelRollRight = depot.getAnimation("KindleBarrelRollRight");
 	this.damagedRight = depot.getAnimation("KindleDamagedRight");
 	this.damagedLeft = depot.getAnimation("KindleDamagedLeft");
 	this.knockedOutLeft = depot.getAnimation("KindleKnockedOutLeft");
@@ -291,6 +305,7 @@ PlayerCharacter.prototype.init = function (reinit) {
 	this.lappingWavesSound = depot.getSFX("lapping_waves");
 
 	this.attackVolume = new TriggerVolume("PCAttack", new Rectf(0, -50, 75, 0), this, null, "damage_pwr");
+	this.barrelRollAttackVolume = new TriggerVolume("PCBRAttack", new Rectf(-26, -58, 26, -6), this, null, "damage");
 	this.hammerAttackVolume = new TriggerVolume("PCAttack", new Rectf(0, -64, 79, 10), this, null, "stun_pwr");
 	this.jumpAttackVolume = new TriggerVolume("PCAttack", new Rectf(0, -64, 79, 10), this, null, "damage_pwr");
 };
@@ -326,7 +341,7 @@ PlayerCharacter.prototype.useFireflies = function (dt) {
  * @param {number} dt Time delta
  */
 PlayerCharacter.prototype.update = function (dt) {
-	if (this.isAlive() && GameInput.instance.pressed(Buttons.enter)) { //todo: check if not dialogue state
+	if (this.isAlive() && GameInput.instance.pressed(Buttons.interact)) { //todo: check if not dialogue state
 		this.useFireflies();
 		//todo:if (app.game.stopUpdate()) return;
 	}
@@ -354,7 +369,7 @@ PlayerCharacter.prototype.update = function (dt) {
 	var pos = this.movement.position;
 
 	if (pos.x > stage.gameplayExtent.w || pos.x < 0 || pos.y > stage.gameplayExtent.h) {
-		this.setPos(this.startPos, true);
+		this.kill();
 	}
 
 	// TODO
@@ -374,7 +389,9 @@ PlayerCharacter.prototype.draw = function (render, x, y) {
 	p.x += x;
 	p.y += y;
 
-	this.animation.draw(render, Math.floor(p.x), Math.floor(p.y), 0, 1, null);
+
+	var tint = this.getDisplayTint();
+	this.animation.draw(render, Math.floor(p.x), Math.floor(p.y), 0, 1, tint);
 
 	HittableGameObject.prototype.draw.call(this, render, Math.floor(p.x), Math.floor(p.y));
 
@@ -509,7 +526,7 @@ PlayerCharacter.prototype.onAnimationEvent = function (evt, anim) {
 		case "shuffle_sound" : app.audio.playFX(this.waddleSound); break;
 	}
 
-	//this.fsm.message(evt, anim);
+	this.fsm.message(evt, anim);
 };
 
 
@@ -529,6 +546,10 @@ PlayerCharacter.prototype.startAttack = function (type) {
 		triggerSys.addVolume(this.hammerAttackVolume);
 		app.audio.playFX(this.hammerAttackSound[soundIndex]);
 	}
+	else if (type === PCAttackType.kBarrelRollAttack) {
+		this.setInvunerable(true);
+		triggerSys.addVolume(this.barrelRollAttackVolume);
+	}
 	else if (type === PCAttackType.kJumpAttack) {
 		triggerSys.addVolume(this.jumpAttackVolume);
 		app.audio.playFX(this.jumpAttackSound[soundIndex]);
@@ -543,6 +564,9 @@ PlayerCharacter.prototype.endAttack = function () {
 
 	triggerSys.flushVolume(this.attackVolume);
 	triggerSys.removeVolume(this.attackVolume);
+
+	triggerSys.flushVolume(this.barrelRollAttackVolume);
+	triggerSys.removeVolume(this.barrelRollAttackVolume);
 
 	triggerSys.flushVolume(this.hammerAttackVolume);
 	triggerSys.removeVolume(this.hammerAttackVolume);
@@ -630,6 +654,10 @@ PlayerCharacter.prototype.faceRight = function () {
 
 PlayerCharacter.prototype.hasTurned = function () {
 	return !this.facingRight;
+};
+
+PlayerCharacter.prototype.isBallRolling = function () {
+	return false;
 };
 
 PlayerCharacter.prototype.enterCave = function(targetStage, targetEntrance, houseId, status) {
@@ -742,6 +770,14 @@ PlayerCharacter.prototype.setCorpseSmackedState = function (fromLeft) {
 	this.fsm.message(PCMessages.kCorpseSmacked);
 };
 
+PlayerCharacter.prototype.dialogueStarted = function () {
+	this.fsm.setState(PCStates.kStateDialogueEvent);
+};
+
+PlayerCharacter.prototype.setBlankState = function () {
+	this.fsm.setState(PCStates.kStateDialogueEvent);
+};
+
 PlayerCharacter.prototype.getIdolInfo = function() {
 	return new IdolInfo(IdolType.kIdolKindle, GemType.kGemRed, GemType.kGemRed, MetalType.kMetalGold);
 };
@@ -775,6 +811,10 @@ PlayerCharacter.prototype.handleBlast = function() {
 
 PlayerCharacter.prototype.spawnInStage = function(){
 
+};
+
+PlayerCharacter.prototype.setLastLamppost = function(lamppost){
+	this.lastLamppost = lamppost;
 };
 
 

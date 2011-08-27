@@ -15,6 +15,7 @@
 
 	<script type="text/javascript" src="src/Common.js"></script>
 	<script type="text/javascript" src="src/Perlin.js"></script>
+	<script type="text/javascript" src="src/ChaikinCurve.js"></script>
 
 	<script type="text/javascript" src="src/render/Render.js"></script>
 	<script type="text/javascript" src="src/render/RenderCanvas.js"></script>
@@ -29,6 +30,7 @@
 	<script type="text/javascript" src="src/Movement.js"></script>
 	<script type="text/javascript" src="src/Trigger.js"></script>
 	<script type="text/javascript" src="src/ParticleSystem.js"></script>
+	<script type="text/javascript" src="src/DialogueSystem.js"></script>
 	<script type="text/javascript" src="src/GameObjects.js"></script>
 	<script type="text/javascript" src="src/HittableObject.js"></script>
 
@@ -37,6 +39,8 @@
 	<script type="text/javascript" src="src/CaveEntrance.js"></script>
 	<script type="text/javascript" src="src/House.js"></script>
 	<script type="text/javascript" src="src/Pickup.js"></script>
+	<script type="text/javascript" src="src/Breakables.js"></script>
+	<script type="text/javascript" src="src/GremlinBasket.js"></script>
 
 	<script type="text/javascript" src="src/ResourceClasses.js"></script>
 	<script type="text/javascript" src="src/ResourceDepot.js"></script>
@@ -53,6 +57,9 @@
 	<script type="text/javascript" src="src/GremlinStates.js"></script>
 	<script type="text/javascript" src="src/PCStates.js"></script>
 	<script type="text/javascript" src="src/Wick.js"></script>
+	<script type="text/javascript" src="src/TutorialTip.js"></script>
+	<script type="text/javascript" src="src/Villager.js"></script>
+	<script type="text/javascript" src="src/Lamppost.js"></script>
 
 	<script type="text/javascript">
 		var app = null;
@@ -69,6 +76,10 @@
 					}
 				}
 			});
+
+            document.onselectstart = function () {
+                return false;
+            };
 		};
 
 		function application() {
@@ -108,6 +119,8 @@
 			width: 100%;
 			height: 100%;
 			color: #fff;
+			font-family: Allan, Arial;
+			font-size: 40px;
 		}
 	</style>
 </head>

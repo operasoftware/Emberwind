@@ -576,7 +576,8 @@ SprintState.prototype.transition = function () {
 	var input = GameInput.instance;
 	return this.fsm.tryChangeState(!this.host.movement.IsOnFloor() && !this.host.movement.IsNearFloor(40) && this.timeInAir > 0.25, PCStates.kStateFall, PCMessages.kTransitionedFromSprint) ||
 	       this.fsm.tryChangeState(this.host.facingRight && !input.held(Buttons.right) || !this.host.facingRight && !input.held(Buttons.left), PCStates.kStateIdle) ||
-		   this.fsm.tryChangeState(input.held(Buttons.jump), PCStates.kStateJump, PCMessages.kTransitionedFromSprint);
+		   this.fsm.tryChangeState(input.held(Buttons.jump), PCStates.kStateJump, PCMessages.kTransitionedFromSprint) ||
+		   this.fsm.tryChangeState(input.held(Buttons.attack), PCStates.kStateBarrelRollStart);
 };
 
 // ---------------------------------------------------------------------------
@@ -640,9 +641,16 @@ HideState.prototype.update = function (dt) {
 
 HideState.prototype.transition = function () {
 	var input = GameInput.instance;
-	// TODO Shuffle
-	return this.fsm.tryChangeState(input.held(Buttons.up), PCStates.kStateUnhide);
-	// TODO more state changes
+
+var shuffle = (input.held(Buttons.left) || input.held(Buttons.right))
+              && ((this.host.facingRight && (input.held(Buttons.left)))
+              || (!this.host.facingRight && (input.held(Buttons.right)))
+              || (!this.host.movement.IsFacingEdge(!this.host.facingRight) && !this.host.movement.IsFacingWall(!this.host.facingRight)));
+
+	// todo: rocket jump
+
+  return this.fsm.tryChangeState(input.held(Buttons.up), PCStates.kStateUnhide)
+      || this.fsm.tryChangeState(shuffle, PCStates.kStateStartShuffle);
 };
 
 // ---------------------------------------------------------------------------
@@ -685,7 +693,7 @@ UnhideState.prototype.message = function (msg) {
 		if (msg === PCMessages.kAnimStopped) {
 			this.animStopped = true;
 		}
-		else if (msg === kBlasted) {
+		else if (msg === PCMessages.kBlasted) {
 			this.blasted = true;
 		}
 	}
@@ -711,14 +719,10 @@ UnhideState.prototype.transition = function () {
  * @auguments BaseState
  */
 function KnockedOutState() {
-	// todo : temporary below, for reviving Kindle when he have been knocked out.
-	this.delay = 2.5;
-	this.time = 0;
 	BaseState.apply(this, arguments);
 }
 
 KnockedOutState.prototype.enter = function (msg, fromState) {
-	this.time = 0;
 	if (this.host.facingRight) {
 		this.host.setAndPlay(this.host.knockedOutRight, false);
 	}
@@ -745,19 +749,12 @@ KnockedOutState.prototype.message = function (msg) {
 };
 
 KnockedOutState.prototype.update = function (dt) {
-	this.time += dt; // todo: temp
 	if (this.host.movement.IsOnFloor()) {
 		this.host.movement.SetDesiredVelocityHoriz(0);
 	}
 };
 
 KnockedOutState.prototype.transition = function () {
-	// todo : temporary below, for reviving Kindle when he have been knocked out.
-	if (this.time >= this.delay) {
-		this.host.regenerate();
-		this.fsm.setState(0);
-		return true;
-	}
 	return false;
 };
 
@@ -904,6 +901,428 @@ SwingState.prototype.transition = function () {
 
 // ---------------------------------------------------------------------------
 
+function DialogueEventState() {
+	BaseState.apply(this, arguments);
+
+	this.timeInState = 0;
+}
+
+DialogueEventState.prototype.enter = function (msg, fromState) {
+	if (this.host.facingRight) {
+		this.host.setAndPlay(this.host.idleRight);
+	}	else {
+		this.host.setAndPlay(this.host.idleLeft);
+	}
+	this.host.movement.SetDesiredVelocityVert(0);
+	this.host.setInvulnerable(false);
+	this.host.endAttack();
+	this.timeInState = 0;
+};
+
+DialogueEventState.prototype.leave = function () {
+};
+
+DialogueEventState.prototype.message = function (msg) {
+};
+
+DialogueEventState.prototype.update = function (dt) {
+	if (this.host.movement.IsOnFloor())
+		this.host.movement.SetDesiredVelocityHoriz(0);
+
+	this.timeInState += dt;
+};
+
+DialogueEventState.prototype.transition = function () {
+	return this.fsm.tryChangeState(this.timeInState > 0.1, PCStates.kStateIdle);
+};
+
+// ---------------------------------------------------------------------------
+
+/**
+ * PlayerCharacter barrellroll start state
+ *
+ * @constructor
+ * @auguments BaseState
+ */
+function BarrelRollStartState() {
+	BaseState.apply(this, arguments);
+
+	this.animStopped = false;
+}
+
+BarrelRollStartState.prototype.enter = function (msg, fromState) {
+
+	this.host.startAttack(PCAttackType.kBarrelRollAttack);
+	this.host.movement.PushGravity(9.82 * 100);
+	this.host.movement.SetDesiredVelocityVert(-500);
+	if (this.host.facingRight)
+		this.host.setAndPlay(this.host.barrelRollRight, false, 0, 21 / 61);
+	else
+		this.host.setAndPlay(this.host.barrelRollLeft, false, 0, 21 / 61);
+
+	app.audio.playFX(this.host.barrelRollInitSound);
+
+	this.animStopped = false;
+};
+
+BarrelRollStartState.prototype.leave = function () {
+	this.host.endAttack();
+	this.host.movement.PopGravity();
+};
+
+BarrelRollStartState.prototype.message = function (message) {
+	if (message == PCMessages.kAnimStopped)
+		this.animStopped = true;
+};
+
+BarrelRollStartState.prototype.update = function (dt) {
+	if (this.host.facingRight)
+		this.host.movement.SetDesiredVelocityHoriz(PlayerCharacter.kBarrelRollSpeed);
+	else
+		this.host.movement.SetDesiredVelocityHoriz(-PlayerCharacter.kBarrelRollSpeed);
+};
+
+BarrelRollStartState.prototype.transition = function () {
+	return this.fsm.tryChangeState(this.animStopped, PCStates.kStateBarrelRoll);
+};
+
+// ---------------------------------------------------------------------------
+
+
+/**
+ * PlayerCharacter barrel roll state
+ *
+ * @constructor
+ * @auguments BaseState
+ */
+
+function BarrelRollState() {
+	BaseState.apply(this, arguments);
+
+	this.startedAsRightRoll = false;
+
+	this.onGround = false;
+	this.soundInstance = 0;
+}
+
+BarrelRollState.prototype.enter = function (msg, fromState) {
+	this.host.movement.PushGravity(9.82 * 100);
+	this.host.startAttack(PCAttackType.kBarrelRollAttack);
+	this.startedAsRightRoll = this.host.facingRight;
+	this.playRollAnim();
+	this.onGround = this.host.movement.IsOnFloor();
+	if (this.onGround)
+		this.soundInstance = app.audio.playFX(this.host.barrelRollSound, true);
+};
+
+BarrelRollState.prototype.playRollAnim = function() {
+	if (this.host.facingRight)
+		this.host.setAndPlay(this.host.barrelRollRight, true, 21 / 61, 40 / 61);
+	else
+		this.host.setAndPlay(this.host.barrelRollLeft, true, 21 / 61, 40 / 61);
+};
+
+BarrelRollState.prototype.leave = function () {
+	this.host.movement.PopGravity();
+	this.host.endAttack();
+	if (this.onGround)
+		app.audio.stopSound(this.soundInstance);
+};
+
+BarrelRollState.prototype.message = function (message) {
+	if (message == PCMessages.kAttackBlocked)
+		this.bounce();
+};
+
+BarrelRollState.prototype.bounce = function() {
+	this.host.facingRight = !this.host.facingRight;
+	this.host.movement.SetDesiredVelocityVert(-150);
+	this.playRollAnim();
+};
+
+BarrelRollState.prototype.update = function (dt) {
+	if (this.host.movement.IsHittingWall(!this.host.facingRight)) {
+		app.audio.playFX(this.host.barrelRollBounceSound);
+		this.bounce();
+	}
+
+	if (this.host.facingRight)
+		this.host.movement.SetDesiredVelocityHoriz(PlayerCharacter.kBarrelRollSpeed);
+	else
+		this.host.movement.SetDesiredVelocityHoriz(-PlayerCharacter.kBarrelRollSpeed);
+
+	var currOnGround = this.host.movement.IsOnFloor();
+	if (currOnGround ^ this.onGround) {
+		this.onGround = currOnGround;
+		if (this.onGround)
+			this.soundInstance = app.audio.playFX(this.host.barrelRollSound, true);
+		else
+			app.audio.stopSound(this.soundInstance);
+	}
+};
+
+BarrelRollState.prototype.transition = function () {
+	var upHeld = GameInput.instance.held(Buttons.up);
+	var downHeld = GameInput.instance.held(Buttons.down);
+	var leftHeld = GameInput.instance.held(Buttons.left);
+	var rightHeld = GameInput.instance.held(Buttons.right);
+
+	return  this.fsm.tryChangeState(upHeld, PCStates.kStateJump) ||
+			this.fsm.tryChangeState(this.startedAsRightRoll && !rightHeld || !this.startedAsRightRoll && !leftHeld || downHeld, PCStates.kStateBarrelRollEnd);
+};
+
+// ---------------------------------------------------------------------------
+
+/**
+ * PlayerCharacter barrel roll end state
+ *
+ * @constructor
+ * @auguments BaseState
+ */
+
+function BarrelRollEndState() {
+	BaseState.apply(this, arguments);
+
+	this.animStopped = false;
+}
+
+BarrelRollEndState.prototype.enter = function (msg, fromState) {
+	this.host.startAttack(PCAttackType.kBarrelRollAttack);
+	this.host.movement.PushGravity(9.82 * 100);
+	if (this.host.facingRight)
+		this.host.setAndPlay(this.host.barrelRollRight, false, 41 / 61);
+	else
+		this.host.setAndPlay(this.host.barrelRollLeft, false, 40 / 61);
+
+	this.animStopped = false;
+};
+
+BarrelRollEndState.prototype.leave = function () {
+	this.host.endAttack();
+	this.host.movement.PopGravity();
+};
+
+BarrelRollEndState.prototype.message = function (message) {
+	if (message == PCMessages.kAnimStopped)
+		this.animStopped = true;
+};
+
+BarrelRollEndState.prototype.update = function (dt) {
+	if (this.host.facingRight)
+		this.host.movement.SetDesiredVelocityHoriz(PlayerCharacter.kBarrelRollSpeed);
+	else
+		this.host.movement.SetDesiredVelocityHoriz(-PlayerCharacter.kBarrelRollSpeed);
+};
+
+BarrelRollEndState.prototype.transition = function () {
+	return this.fsm.tryChangeState(this.animStopped, PCStates.kStateIdle, false);
+};
+
+
+// ---------------------------------------------------------------------------
+
+/**
+ * PlayerCharacter shuffle state
+ *
+ * @constructor
+ * @auguments BaseState
+ */
+
+function ShuffleState() {
+	BaseState.apply(this, arguments);
+
+ this.blasted = false;
+}
+
+ShuffleState.prototype.enter = function (msg, fromState) {
+	if (this.host.facingRight)
+    this.host.setAndPlay(this.host.shuffleRight);
+  else
+    this.host.setAndPlay(this.host.shuffleLeft);
+  this.host.setInvulnerable(true);
+
+  this.blasted = false;
+};
+
+ShuffleState.prototype.leave = function () {
+};
+
+ShuffleState.prototype.message = function (message) {
+	 if (message == PCMessages.kBlasted)
+    this.blasted = true;
+};
+
+ShuffleState.prototype.update = function (dt) {
+	 if (this.host.facingRight)
+    this.host.movement.SetDesiredVelocityHoriz(70);
+  else
+    this.host.movement.SetDesiredVelocityHoriz(-70);
+};
+
+ShuffleState.prototype.transition = function () {
+	var input = GameInput.instance;
+	var endShuf =  !(input.held(Buttons.left) || input.held(Buttons.right))
+                  || this.host.movement.IsFacingEdge(!this.host.facingRight)
+                  || this.host.movement.IsFacingWall(!this.host.facingRight);
+
+  return  this.fsm.tryChangeState(this.blasted, PCStates.kStateSnuffExplode)
+          || this.fsm.tryChangeState(this.host.facingRight && (input.held(Buttons.left)), PCStates.kStateTurnShuffle)
+          || this.fsm.tryChangeState(!this.host.facingRight && (input.held(Buttons.right)), PCStates.kStateTurnShuffle)
+          || this.fsm.tryChangeState(endShuf, PCStates.kStateEndShuffle);
+};
+
+// ---------------------------------------------------------------------------
+
+/**
+ * PlayerCharacter start shuffle state
+ *
+ * @constructor
+ * @auguments BaseState
+ */
+
+function StartShuffleState() {
+	BaseState.apply(this, arguments);
+
+ this.animStopped = false;
+ this.blasted = false;
+}
+
+StartShuffleState.prototype.enter = function (msg, fromState) {
+	 if (this.host.facingRight)
+    this.host.setAndPlay(this.host.endShuffleRight, false, 1);
+  else
+    this.host.setAndPlay(this.host.endShuffleLeft, false, 1);
+  this.host.animation.setSpeed(-1);
+
+  this.host.setInvulnerable(true);
+
+  this.animStopped = false;
+  this.blasted = false;
+};
+
+StartShuffleState.prototype.leave = function () {
+};
+
+StartShuffleState.prototype.message = function (message) {
+	 if (message == PCMessages.kAnimStopped)
+    this.animStopped = true;
+  else if (message == PCMessages.kBlasted)
+    this.blasted = true;
+};
+
+StartShuffleState.prototype.update = function (dt) {
+	 if (this.host.movement.IsOnFloor())
+    this.host.movement.SetDesiredVelocityHoriz(0);
+};
+
+StartShuffleState.prototype.transition = function () {
+	var input = GameInput.instance;
+	return this.fsm.tryChangeState(this.blasted, PCStates.kStateSnuffExplode)
+      || this.fsm.tryChangeState(this.animStopped && !(input.held(Buttons.left) || input.held(Buttons.right)), PCStates.kStateEndShuffle)
+      || this.fsm.tryChangeState(this.animStopped, PCStates.kStateShuffle);
+};
+
+// ---------------------------------------------------------------------------
+
+/**
+ * PlayerCharacter turn shuffle state
+ *
+ * @constructor
+ * @auguments BaseState
+ */
+
+function TurnShuffleState() {
+	BaseState.apply(this, arguments);
+
+ this.animStopped = false;
+ this.blasted = false;
+}
+
+TurnShuffleState.prototype.enter = function (msg, fromState) {
+	if (this.host.facingRight)
+    this.host.setAndPlay(this.host.shuffleTurnRight, false);
+  else
+    this.host.setAndPlay(this.host.shuffleTurnLeft, false);
+  this.host.facingRight = !this.host.facingRight;
+  this.host.setInvulnerable(true);
+
+  this.animStopped = false;
+  this.blasted = false;
+};
+
+TurnShuffleState.prototype.leave = function () {
+};
+
+TurnShuffleState.prototype.message = function (message) {
+	 if (message == PCMessages.kAnimStopped)
+    this.animStopped = true;
+  else if (message == PCMessages.kBlasted)
+   this.blasted = true;
+};
+
+TurnShuffleState.prototype.update = function (dt) {
+	 if (this.host.movement.IsOnFloor())
+    this.host.movement.SetDesiredVelocityHoriz(0);
+};
+
+TurnShuffleState.prototype.transition = function () {
+	var input = GameInput.instance;
+	return this.fsm.tryChangeState(this.blasted, PCStates.kStateSnuffExplode)
+      || this.fsm.tryChangeState(this.animStopped && !(input.held(Buttons.left) || input.held(Buttons.right)), PCStates.kStateEndShuffle)
+      || this.fsm.tryChangeState(this.animStopped, PCStates.kStateShuffle);
+};
+
+// ---------------------------------------------------------------------------
+
+/**
+ * PlayerCharacter end shuffle state
+ *
+ * @constructor
+ * @auguments BaseState
+ */
+
+function EndShuffleState() {
+	BaseState.apply(this, arguments);
+
+ this.animStopped = false;
+ this.blasted = false;
+}
+
+EndShuffleState.prototype.enter = function (msg, fromState) {
+	if (this.host.facingRight)
+    this.host.setAndPlay(this.host.endShuffleRight, false);
+  else
+    this.host.setAndPlay(this.host.endShuffleLeft, false);
+  this.host.setInvulnerable(true);
+
+  this.animStopped = false;
+  this.blasted = false;
+};
+
+EndShuffleState.prototype.leave = function () {
+};
+
+EndShuffleState.prototype.message = function (message) {
+	 if (message == PCMessages.kAnimStopped)
+    this.animStopped = true;
+  else if (message == PCMessages.kBlasted)
+    this.blasted = true;
+};
+
+EndShuffleState.prototype.update = function (dt) {
+	 if (this.host.movement.IsOnFloor())
+    this.host.movement.SetDesiredVelocityHoriz(0);
+};
+
+EndShuffleState.prototype.transition = function () {
+	return this.fsm.tryChangeState(this.blasted, PCStates.kStateSnuffExplode)
+      || this.fsm.tryChangeState(this.animStopped, PCStates.kStateHide, PCMessages.kAlreadyHidden);
+};
+
+// ---------------------------------------------------------------------------
+
+
+
 /**
  * PlayerCharacter  state
  *
@@ -929,7 +1348,7 @@ TEMPLATE.prototype.enter = function (msg, fromState) {
 TEMPLATE.prototype.leave = function () {
 };
 
-TEMPLATE.prototype.message = function (msg) {
+TEMPLATE.prototype.message = function (message) {
 };
 
 TEMPLATE.prototype.update = function (dt) {

@@ -35,7 +35,7 @@ Pixel32.prototype.constructor = Pixel32;
  * @param r 0..255
  * @param g 0..255
  * @param b 0..255
- * @param a 0..255
+ * @param [a] 0..255
  * @returns {Pixel32}
  */
 function Pixel32(r, g, b, a) {
@@ -303,6 +303,8 @@ Rectf.prototype.include = function (x, y) {
     this.y0 = Math.min(this.y0, y);
     this.x1 = Math.max(this.x1, x);
     this.y1 = Math.max(this.y1, y);
+	this.width = this.x1 - this.x0 + 1;
+	this.height = this.y1 - this.y0 + 1;
 };
 
 /*

@@ -10,9 +10,6 @@ function CaveEntrance() {
 
 	this.exploder = new ShrapnelExploder();
 	this.playerEntered = false;
-	this.arrowParam = 0;
-	this.arrowTintParam = 0;
-	this.arrow = null;
 	this.isLeftEntrance = false;
 	this.entranceType = 0;
 
@@ -119,11 +116,6 @@ CaveEntrance.prototype.init = function(reinit) {
 	}
 
 	this.explodeSound = dep.getSFX("exploding_rocks");
-
-	//todo: check if any area is unavialable or locked
-
-	this.arrow = this.isLeftEntrance ? dep.getImage("objective_arrows", "arrow_mirrored", true) :
-			dep.getImage("objective_arrows", "arrow", true);
 };
 
 CaveEntrance.prototype.deinit = function() {
@@ -134,17 +126,11 @@ CaveEntrance.prototype.deinit = function() {
 CaveEntrance.prototype.update = function(dt) {
 	HittableGameObject.prototype.update.call(this, dt);
 	this.exploder.update(dt);
-	this.arrowParam += dt * Math.PI * 2;
-	this.arrowTintParam += dt * Math.PI * 3;
 };
 
 CaveEntrance.prototype.draw = function(render, x, y) {
 	this.exploder.draw(render, x, y);
 	HittableGameObject.prototype.draw.call(this, render, this.getPos().x + x, this.getPos().y + y);
-	if (this.isCleared() && !this.playerEntered && app.game.currentStage.name == "stage0") {
-		var tint = ((Math.sin(this.arrowTintParam) + 1) * 64);
-		render.drawImage(this.arrow, this.getPos().x + x + Math.sin(this.arrowParam) * 5 + (this.isLeftEntrance ? -38 : 0), this.getPos().y + y - 15, 0, false, 1, new Pixel32(230, 230, 115, tint));
-	}
 };
 
 
@@ -329,6 +315,12 @@ function HouseEntrance() {
 	this.targetExit = null;
 	this.targetStage = null;
 	this.houseId = 0;
+
+	this.arrowTintParam  = 0;
+	this.arrowParam = 0;
+	this.isLeftEntrance = false;
+	this.arrow = null;
+	this.house = null;
 }
 
 HouseEntrance.prototype = new GameObject();
@@ -344,22 +336,38 @@ HouseEntrance.prototype.onCreate = function(res) {
 		this.targetStage = this.targetStage.substr(0, p);
 	} else
 		this.targetExit = null;
+
+	this.isLeftEntrance = this.targetExit == "left";
+
+	var dep = ResourceDepot.getInstance();
+	this.arrow = this.isLeftEntrance ? dep.getImage("objective_arrows", "arrow_mirrored", true) :
+			dep.getImage("objective_arrows", "arrow", true);
 };
 
 HouseEntrance.prototype.init = function(reinit) {
 	GameObject.prototype.init.call(this, reinit);
 	this.setInteractive(new Rectf(-20, -20, 20, 20));
-	var houses = app.game.currentStage.gameObjects.getObjectsByType(House); //todo: not string
+	var houses = app.game.currentStage.gameObjects.getObjectsByType(House);
 	for (var i = 0; i < houses.length; i++) {
 		var h = houses[i];
 		if (h.targetStage == this.targetStage) {
 			this.houseId = h.getId();
+			this.house = h;
 			break;
 		}
 	}
 };
 
+HouseEntrance.prototype.update = function(dt) {
+	this.arrowParam += dt * Math.PI * 2;
+	this.arrowTintParam += dt * Math.PI * 3;
+};
+
 HouseEntrance.prototype.draw = function(render, x, y) {
+	if (!this.house.lit && app.game.currentStage.name != "stage0") {
+		var tint = ((Math.sin(this.arrowTintParam) + 1) * 64);
+		render.drawImage(this.arrow, this.getPos().x + x + Math.sin(this.arrowParam) * 5 + (this.isLeftEntrance ? -58 : 20), this.getPos().y + y - 15, 0, false, 1, new Pixel32(230, 230, 115, tint));
+	}
 };
 
 HouseEntrance.prototype.setPos = function(pos, dropToGround) {
@@ -368,11 +376,12 @@ HouseEntrance.prototype.setPos = function(pos, dropToGround) {
 
 HouseEntrance.prototype.onInteract = function(obj, param) {
 	var status = false;
-	var houses = app.game.currentStage.gameObjects.getObjectsByType(House); //todo: not string
+	var houses = app.game.currentStage.gameObjects.getObjectsByType(House);
 	for (var i = 0; i < houses.length; i++) {
 		var h = houses[i];
 		if (h.getId() == this.houseId) {
 			status = h.getStatus();
+			if (h.lit) app.audio.playDelayedFX(ResourceDepot.getInstance().getSFX("fire_crackle"), 500, true);
 			break;
 		}
 	}
@@ -385,7 +394,6 @@ HouseEntrance.prototype.onInteract = function(obj, param) {
 HouseEntrance.prototype.getTargetEntrance = function() {
 	return this.targetEntrance;
 };
-
 
 // ----------------------------------------------------------------------------
 

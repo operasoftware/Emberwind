@@ -4,7 +4,6 @@ function House() {
 	this.windows = [];
 	this.chimneys = [];
 	this.doors = [];
-	this.localHouseRect = null;
 	this.houseRect = null;
 	this.targetStage = null;
 	this.chimneySmoke = null;
@@ -24,7 +23,7 @@ House.prototype.onCreate = function(res) {
 		localHouseRect.include(res.subhandles[s], res.subhandles[s + 1]);
 
 	this.houseRect = localHouseRect;
-	this.houseRect.offset(new Vec2(res.x, res.y));
+	this.houseRect = this.houseRect.offset(new Vec2(res.x, res.y));
 };
 
 House.prototype.init = function(reinit) {
@@ -57,7 +56,7 @@ House.prototype.update = function(dt) {
 };
 
 House.prototype.draw = function(render, x, y) {
-	if (!this.lit && app.game.currentStage.name == "stage0") {
+	if (!this.lit && app.game.currentStage.name != "stage0") {
 		var tint = new Pixel32(230, 230, 115, Math.floor(Math.sin(this.arrowTintParam) + 1) * 64);
 		for (var i = 0; i < this.doors.length; i++) {
 			var d = this.doors[i];
@@ -86,14 +85,20 @@ House.prototype.removeObserver = function(o) {
 };
 
 House.prototype.setStatus = function(l) {
-	if (l && !this.lit)
+	if (l && !this.lit){
 		app.game.getTallyInfo().houses++;
+
+		var tileLayers = app.game.currentStage.tileLayers;
+		for (var t = 0; t < tileLayers.length; t++) {
+			tileLayers[t].replaceTiles("window_dim", "window_lit", this.houseRect)
+		}
+	}
+
 	this.lit = l;
 	if (this.lit) {
 		for (var i = 0; i < this.objectiveObservers.length; i++) {
 			this.objectiveObservers[i].onObjectiveCompleted(this);
 		}
-		// todo: change windows
 	}
 };
 
@@ -121,9 +126,6 @@ House.prototype.getObjectExtent = function() {
 		ext.include(new Rectf(centre.x - w, centre.y - h, centre.x + w, centre.y + h));
 	}
 	return ext;
-};
-
-House.prototype.abc = function() {
 };
 
 function Door(pos, image) {
@@ -221,11 +223,12 @@ Fireplace.prototype.light = function() {
 		this.removeTriggers();
 		game.sendMessageToId(this.houseId, {"houseStatus" : true});
 
-		//todo: game.sendMessageToType(Villager, {"houseStatusNOW" : true});
+		game.sendMessageToType(Villager, {"houseStatusNOW" : true});
 
 		this.numBlasts = 2;
 		app.audio.playFX(this.litSound);
-		// todo: app.audio.playDelayedSoundFX(this.burningSound, 0.5, true);
+
+		app.audio.playDelayedFX(this.burningSound, 500, true);
 
 		//todo: game.startChainBlast(this.getPos(), true);
 

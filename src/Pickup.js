@@ -323,7 +323,7 @@ Pickup.prototype.update = function (dt) {
 			this.timeToPop -= dt;
 		}
 		else {
-			app.game.currentStage.particleSystem.spawnAnimatedParticle(this.pickupVanish, this.getPos().addNew(new Vec2(0, -20)), new Vec2(0, 0));
+			app.game.currentStage.particleSystem.spawnAnimatedParticle(this.pickupVanish, this.getPos().addNew(new Vec2(0, -20)), new Vec2(0, 0), true);
 			this.enable(false);
 		}
 	}
@@ -467,7 +467,7 @@ Pickup.prototype.collected = function (p) {
 
 	switch (this.type) {
 		case Pickup.Type.kPickupFireworks:	  
-			// TODO: g->TriggerFireworks();
+			g.triggerFireworks();
 			break;
 		case Pickup.Type.kPickupGoldenApple:  
 			if (!p.regenerate()) {

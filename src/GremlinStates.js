@@ -96,9 +96,9 @@ GremIdleState.prototype.message = function(message) {
 GremIdleState.prototype.transition = function() {
 	if (this.timeToLootCheck <= 0 && this.host.type == Gremlin.types.kGremThief) {
 		this.timeToLootCheck = randomRange(0.25, 0.5);
-		this.pickup = this.host.getLootInAwareness();
-		if (this.pickup) {
-			this.host.setWalkTarget(this.pickup);
+		var pickup = this.host.getLootInAwareness();
+		if (pickup) {
+			this.host.setWalkTarget(pickup);
 			this.fsm.setState(Gremlin.states.kStateWalk);
 			return true;
 		}
@@ -115,17 +115,17 @@ GremIdleState.prototype.transition = function() {
 };
 
 GremIdleState.prototype.stealLoot = function() {
-	var pickedUpLoot = false;
+	var pickedUpLoot;
 
 	do{
 		pickedUpLoot = false;
 		var pickup = this.host.getLootInAwareness();
-		if (pickup !== null && (pickup.getPos().subNew(this.host.getPos())).MagnitudeSquared() < 50 * 50) {
+		if (pickup !== null && pickup.getPos().subNew(this.host.getPos()).MagnitudeSquared() < 50 * 50) {
 			this.host.setHittable(false);
 			this.host.fadeOutIn(0.5);
 			var t = pickup.getType();
 			this.host.pushExtraLoot(t);
-			this.pickup.enable(false);
+			pickup.enable(false);
 			this.isHiding = true;
 			pickedUpLoot = true;
 		}
@@ -570,7 +570,7 @@ GremStunnedState.prototype.message = function(message) {
 };
 
 GremStunnedState.prototype.transition = function(message) {
-	return this.fsm.tryChangeState(this.timeInState > 3 , Gremlin.states.kStateAwaken);
+	return this.fsm.tryChangeState(this.timeInState > 3, Gremlin.states.kStateAwaken);
 };
 
 // ----------------------------------------------------------------------------
@@ -696,7 +696,7 @@ GremBurntState.prototype.transition = function(message) {
 // ----------------------------------------------------------------------------
 
 /**
- * Gremlin burnt state.
+ * Gremlin basket spawn state.
  */
 function GremBasketSpawnState() {
 	BaseState.apply(this, arguments);
@@ -737,4 +737,135 @@ GremBasketSpawnState.prototype.message = function(message) {
 
 GremBasketSpawnState.prototype.transition = function(message) {
 	return this.fsm.tryChangeState(this.animStopped && this.host.movement.IsOnFloor(), this.host.getDefaultState());
+};
+
+// ----------------------------------------------------------------------------
+
+/**
+ * Gremlin pursue state.
+ */
+function GremPursueState() {
+	BaseState.apply(this, arguments);
+	this.shootTimer = 0;
+	this.hasLOS = false;
+	this.timeToSwing = 0;
+	this.timeToUnbunch = 0;
+	this.waitingForUnreachableTarget = false;
+}
+
+GremPursueState.prototype = new BaseState();
+GremPursueState.prototype.constructor = GremPursueState;
+
+GremPursueState.prototype.enter = function(msg, fromState) {
+	if (this.host.awarenessTarget)
+		this.host.inPursuit = this.host.awarenessTarget;
+	this.turnToTarget(true);
+	this.shootTimer = 0;
+	this.hasLOS = false;
+	if (fromState == Gremlin.states.kStateSwing && this.host.type == Gremlin.types.kGremStandard)
+		this.timeToSwing = 0.25;
+	else
+		this.timeToSwing = 0;
+	this.timeToUnbunch = 0;
+	this.waitingForUnreachableTarget = false;
+};
+
+GremPursueState.prototype.update = function(dt) {
+	if (this.waitingForUnreachableTarget) {
+		this.host.movement.SetDesiredVelocityHoriz(0);
+	} else {
+		this.timeToUnbunch -= dt;
+		this.timeToSwing -= dt;
+		this.turnToTarget();
+		var kSpeed = 65.6 * 1.5;
+		if (this.host.isFacingRight())
+			this.host.movement.SetDesiredVelocityHoriz(kSpeed);
+		else
+			this.host.movement.SetDesiredVelocityHoriz(-kSpeed);
+
+		if (this.host.type == Gremlin.types.kGremWarrior) {
+			this.shootTimer += dt;
+			if (this.shootTimer >= 2) {
+				if (this.host.hasClearLineOfSight())
+					this.hasLOS = true;
+				else
+					this.shootTimer -= 0.5;
+			}
+		}
+	}
+};
+
+GremPursueState.prototype.leave = function() {
+};
+
+GremPursueState.prototype.turnToTarget = function(doPlay) {
+	if (Math.abs(this.host.inPursuit.getPos().x - this.host.getPos().x) < 10 && Math.abs(this.host.inPursuit.getPos().y - this.host.getPos().y) > 50) {
+		this.waitingForUnreachableTarget = true;
+		this.host.setAndPlay(this.host.idle, false);
+		return;
+	}
+	if (this.waitingForUnreachableTarget) {
+		doPlay = true;
+		this.waitingForUnreachableTarget = false;
+	}
+
+	var right = this.host.inPursuit.getPos().x - this.host.getPos().x > 0;
+	if (right ^ this.host.isFacingRight()) {
+		this.host.turn();
+		doPlay = true;
+	}
+
+	if (doPlay) {
+		if (this.host.isFacingRight())
+			this.host.setAndPlay(this.host.walkRight, true, 0, 1, 1.5);
+		else
+			this.host.setAndPlay(this.host.walkLeft, true, 0, 1, 1.5);
+	}
+};
+
+GremPursueState.prototype.message = function(message) {
+	if (this.host.type == Gremlin.types.kGremWarrior && message == Gremlin.messages.kIncomingBallRoll)
+		this.fsm.setState(Gremlin.states.kStateBlock);
+	else if (this.waitingForUnreachableTarget && message == Gremlin.messages.kPEAnimStopped)
+		this.turnToTarget();
+};
+
+GremPursueState.prototype.transition = function(message) {
+	if (this.timeToUnbunch <= 0 && this.host.type == Gremlin.types.kGremStandard) {
+		if (this.host.isBunchedUp()) {
+			this.host.unbunchTimer = 3;
+			this.host.setNewWalkTarget(true, true);
+			this.fsm.setState(Gremlin.states.kStateWalk);
+			return true;
+		}
+		this.timeToUnbunch = 2;
+	}
+
+	var left = !this.host.isFacingRight();
+	if (this.host.combatAwarenessTarget && this.timeToSwing <= 0) {
+		this.fsm.setState(Gremlin.states.kStateSwing);
+		return true;
+	/*todo:} else if (this.hasLOS) {
+		this.fsm.setState(Gremlin.states.kStateThrow);
+		return true;*/
+	} else if (this.host.movement.IsHittingWall(left) || this.host.movement.IsFacingWall(left)) {
+		if (this.host.movement.CanJump(left, 100)) {
+			this.fsm.setState(Gremlin.states.kStateJump);
+			return true;
+		} else if (this.host.movement.CanJump(left, 200)) {
+			this.fsm.setState(Gremlin.states.kStateJump, Gremlin.messages.kGremHighJump);
+			return true;
+		} else {
+			this.host.inPursuit = null;
+			this.fsm.setState(Gremlin.states.kStateLaugh);
+		}
+	} else if (this.host.movement.IsFacingEdge(left)) {
+		if (this.host.movement.CanDrop(left, 200))
+			return false;
+		else {
+			this.host.inPursuit = null;
+			this.fsm.setState(Gremlin.states.kStateLaugh);
+		}
+	}
+	return false;
 };

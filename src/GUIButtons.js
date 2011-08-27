@@ -117,7 +117,7 @@ function GUITextButton(par, id, label, font, interiorRect, normalImg, highlighte
 GUIButton.eventTypes = {onMouseOff:0, onMouseOver:1, onButtonPressed:2, onButtonReleased:3, onDisabledPressed:4};
 
 GUITextButton.getStandardButton = function(par, id, label, font, callback) {
-	return new GUITextButton(par, id, label, font, new Rectf(10, 10, 53, 37), "ButtonNormal", "ButtonHighlighted", "ButtonPressed", "ButtonDisabled", null, callback);
+	return new GUITextButton(par, id, label, font, new Rectf(10, 8, 53, 37), "ButtonNormal", "ButtonHighlighted", "ButtonPressed", "ButtonDisabled", null, callback);
 };
 
 GUITextButton.prototype = new GUIScalingButton();
@@ -328,7 +328,7 @@ GUIButton.prototype.onEnable = function(enable) {
 
 // ----------------------------------------------------------------------------
 
-function GUIScalingButton (par, id, interiorRect, normalImg, highlightedImg, pressedImg, disabledImg) {
+function GUIScalingButton(par, id, interiorRect, normalImg, highlightedImg, pressedImg, disabledImg) {
 	if(par === undefined) return;
 	this.par = par;
 	this.id = id;
@@ -412,8 +412,8 @@ ResizableFrame.prototype = {};
 ResizableFrame.prototype.constructor = ResizableFrame;
 
 ResizableFrame.prototype.updateCanvasSize = function() {
-	this.cacheRender.canvas.height = this.numVCentre * this.centreRect.height + this.topleft.textureHeight * 2;
-	this.cacheRender.canvas.width = this.numHCentre * this.centreRect.width + this.topleft.textureWidth * 2;
+	this.cacheRender.canvas.height = this.getHeight();
+	this.cacheRender.canvas.width = this.getWidth();
 	this.cacheNeedsUpdate = true;
 };
 
@@ -452,6 +452,7 @@ ResizableFrame.prototype.getInteriorArea = function() {
 };
 
 ResizableFrame.prototype.draw = function(render, x, y, tint) {
+	if (tint === undefined) { tint = null; }
 	if (this.cacheNeedsUpdate) {
 		this.cacheRender.clear();
 		var r = this.centreRect.x0 + this.numHCentre * this.centreRect.width;
@@ -501,3 +502,6 @@ ResizableFrame.prototype.getSize = function() {
 	var b = this.centreRect.y0 + this.numVCentre * this.centreRect.height + this.bottomright.textureHeight;
 	return new Rectf(0, 0, r, b);
 };
+
+// ----------------------------------------------------------------------------
+

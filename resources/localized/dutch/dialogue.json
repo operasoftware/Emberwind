@@ -1,0 +1,181 @@
+[
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Graman! Wat is hier in godsnaam aan de hand?!",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Kwelgeesten!",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Kwelgeesten?! Je maakt vast een grapje.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Grendale wordt aangevallen door kwelgeesten, de dorpsbewoners hebben je hulp nodig.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Maak je geen zorgen, Wick en ik zullen het afhandelen.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Oorlogsschepen van de kwelgeesten vuren vaten af op de stad.",
+				"who": "Wick",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Dat lijkt op een volledige invasie.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Gnoom alarm! Pak ze jongens!",
+				"who": "Scout",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "stage1"
+	},
+	{
+		"trigger": "man3",
+		"cues": [
+			{
+				"text": "Kindle, red het volk van Grendale.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "girl_1",
+		"cues": [
+			{
+				"text": "Ik heb een oude wensput in mijn achtertuin.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H1"
+	},
+	{
+		"trigger": "male_1",
+		"cues": [
+			{
+				"text": "Om te kunnen verdoven moet je meer kracht geven aan je klappen.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H2"
+	},
+	{
+		"trigger": "male_2",
+		"cues": [
+			{
+				"text": "Donguri zijn de droom van elke ontdekkingsreiziger.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H3"
+	},
+	{
+		"trigger": "male_3",
+		"cues": [
+			{
+				"text": "Elk huis met lampen aan is beschermd.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H1"
+	},
+	{
+		"trigger": "male_4",
+		"cues": [
+			{
+				"text": "Vuurvliegjes zullen oplichten als zich dichtbij geheimen bevinden.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H2"
+	},
+	{
+		"trigger": "girl_2",
+		"cues": [
+			{
+				"text": "Misbruik Brownies niet als je hun hulp wilt.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H3"
+	},
+	{
+		"trigger": "girl_3",
+		"cues": [
+			{
+				"text": "Mijn vriendin Sue is in het dorp Mimiga gaan wonen.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	},
+	{
+		"trigger": "male_5",
+		"cues": [
+			{
+				"text": "Je stop zal een reeks van ontploffingen veroorzaken in het heetst van de strijd.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	}
+]

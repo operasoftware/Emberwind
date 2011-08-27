@@ -14,8 +14,12 @@ var HitSoundType = {
  * @auguments GameObject
  */
 function HittableGameObject(displayHits, displayFlash) {
-	if (displayHits === undefined) { return; }
-	if (displayFlash === undefined) { displayFlash = true; }
+	if (displayHits === undefined) {
+		return;
+	}
+	if (displayFlash === undefined) {
+		displayFlash = true;
+	}
 
 	GameObject.apply(this, arguments);
 
@@ -44,8 +48,8 @@ function HittableGameObject(displayHits, displayFlash) {
 
 	this.hitSounds = [];
 	this.hitSounds[HitSoundType.kFlesh] = [];
-	this.hitSounds[HitSoundType.kWood]  = [];
-	this.hitSounds[HitSoundType.kRock]  = [];
+	this.hitSounds[HitSoundType.kWood] = [];
+	this.hitSounds[HitSoundType.kRock] = [];
 	this.hitSounds[HitSoundType.kMetal] = [];
 
 	this.annoyedDelay = 0;
@@ -94,8 +98,12 @@ HittableGameObject.prototype.init = function (reinit) {
 HittableGameObject.prototype.update = function (dt) {
 	GameObject.prototype.update.call(this, dt);
 
-	if(this.hitEffect !== null) { this.hitEffect.update(dt); }
-	if(this.blockEffect !== null) { this.blockEffect.update(dt); }
+	if (this.hitEffect !== null) {
+		this.hitEffect.update(dt);
+	}
+	if (this.blockEffect !== null) {
+		this.blockEffect.update(dt);
+	}
 
 	if (this.grace > 0) {
 		this.grace = Math.max(0, this.grace - dt);
@@ -113,11 +121,11 @@ HittableGameObject.prototype.update = function (dt) {
 HittableGameObject.prototype.draw = function (render, x, y) {
 	if (this.displayHitEffect && !this.hitEffect.isStopped()) {
 		this.hitEffect.draw(render, x + this.hitEffectOffset.x,
-		                    y + this.hitEffectOffset.y, 0, 1, null);
+				y + this.hitEffectOffset.y, 0, 1, null);
 	}
 	if (this.blockEffect && !this.blockEffect.isStopped()) {
 		this.blockEffect.draw(render, x + this.hitEffectOffset.x,
-		                      y + this.hitEffectOffset.y, 0, 1, null);
+				y + this.hitEffectOffset.y, 0, 1, null);
 	}
 };
 
@@ -128,7 +136,7 @@ HittableGameObject.prototype.draw = function (render, x, y) {
  */
 HittableGameObject.prototype.getHitEffectOffset = function (left) {
 	return new Vec2(left ? -20 : 20, -20).add(new Vec2(Math.floor(randomRange(-5, 6)),
-	                                                   Math.floor(randomRange(-5, 6))));
+			Math.floor(randomRange(-5, 6))));
 };
 
 /**
@@ -198,9 +206,15 @@ HittableGameObject.prototype.getHitPoints = function () {
  * @param {boolean} critHit optional
  */
 HittableGameObject.prototype.hit = function (hits, fromLeft, enemyHit, shieldHit, critHit) {
-	if (enemyHit === undefined) { enemyHit = false; }
-	if (shieldHit === undefined) { shieldHit = false; }
-	if (critHit === undefined) { critHit = false; }
+	if (enemyHit === undefined) {
+		enemyHit = false;
+	}
+	if (shieldHit === undefined) {
+		shieldHit = false;
+	}
+	if (critHit === undefined) {
+		critHit = false;
+	}
 
 	if (critHit) {
 		this.playCritHitSound();
@@ -261,7 +275,7 @@ HittableGameObject.prototype.block = function (fromLeft) {
 	this.blockEffect.rewind();
 	this.blockEffect.play(false);
 	if (this.displayHitsTaken) {
-		app.game.displayShielZeroHit(this);
+		app.game.displayShieldZeroHit(this);
 	}
 };
 
@@ -273,7 +287,9 @@ HittableGameObject.prototype.block = function (fromLeft) {
  * @param {boolean} enemyHit optional
  */
 HittableGameObject.prototype.stun = function (hits, fromLeft, enemyHit) {
-	if (enemyHit === undefined) { enemyHit = false; }
+	if (enemyHit === undefined) {
+		enemyHit = false;
+	}
 	this.playHitSound();
 	this.checkAnnoyed(enemyHit);
 
@@ -284,7 +300,7 @@ HittableGameObject.prototype.stun = function (hits, fromLeft, enemyHit) {
 	if (!this.invunerable && this.hittable && !this.hasGrace()) {
 		if (this.hitsRemaining) {
 			if (this.displayHitsTaken) {
-				app.game.displayHit(this. hits);
+				app.game.displayHit(this, hits);
 			}
 
 			this.hitsRemaining = Math.max(0, this.hitsRemaining - hits);
@@ -316,7 +332,7 @@ HittableGameObject.prototype.burn = function (fromLeft, enemyHit) {
 	enemyHit = enemyHit == undefined ? false : enemyHit;
 	this.checkAnnoyed(enemyHit);
 	if (this.hitsRemaining && !this.invunerable && !this.hasGrace()) {
-		if (this.displayHitsTaken && false) //todo
+		if (this.displayHitsTaken)
 			app.game.displayHit(this, 10);
 
 		var hitsTaken = this.hitsRemaining;
@@ -339,14 +355,17 @@ HittableGameObject.prototype.burn = function (fromLeft, enemyHit) {
  * @returns {boolean}
  */
 HittableGameObject.prototype.regenerate = function (hits) {
-	if (hits === undefined) { hits = -1; }
+	if (hits === undefined) {
+		hits = -1;
+	}
 
-	if (this.hitsRemaining == this.maxHits) { return false; }
+	if (this.hitsRemaining == this.maxHits) {
+		return false;
+	}
 
 	if (hits == -1) {
 		this.setHitPoints(this.maxHits);
-	}
-	else {
+	} else {
 		this.setHitPoints(Math.min(this.maxHits, this.hitsRemaining + hits));
 	}
 
@@ -359,6 +378,7 @@ HittableGameObject.prototype.regenerate = function (hits) {
  * Kill the object
  */
 HittableGameObject.prototype.kill = function () {
+	if (this.hitsRemaining == 0) return;
 	if (this.displayHitsTaken) {
 		app.game.displayHit(this, 10);
 	}
@@ -386,7 +406,7 @@ HittableGameObject.prototype.sugarRush = function () {
  *
  * @param {number} hits
  * @param {Vec2} dir
- * @param {number} mag 
+ * @param {number} mag
  */
 HittableGameObject.prototype.explosion = function (hits, dir, mag) {
 	this.hit(hits, dir.x > 0);
@@ -456,46 +476,41 @@ HittableGameObject.prototype.cancelGrace = function () {
  * @returns {Object} {tint, r, g, b}
  */
 HittableGameObject.prototype.getDisplayTint = function () {
-	var ob = {
-		tint : 0,
-		r : 0,
-		g : 0,
-		b : 0
-	};
+	var tint = new Pixel32(0, 0, 0, 0);
 
 	if (this.grace > 0) {
 		if (this.grace > this.maxGrace - 0.2) {
-			ob.tint = Math.floor(128 * (1 - (this.maxGrace - this.grace) * 5));
-			ob.r = ob.g = ob.b = 255;
+			tint.a = Math.floor(128 * (1 - (this.maxGrace - this.grace) * 5));
+			tint.r = tint.g = tint.b = 255;
 		}
 		else if (this.grace < 0.2) {
-			ob.tint = Math.floor(128 * this.grace * 5);
-			ob.r = ob.g = ob.b = 255;
+			tint.a = Math.floor(128 * this.grace * 5);
+			tint.r = tint.g = tint.b = 255;
 		}
 		else {
-			ob.tint = Math.floor(this.grace / this.maxGrace * 80 + 40);
-			ob.r = this.damTint[0];
-			ob.g = this.damTint[1];
-			ob.b = this.damTint[2];
+			tint.a = Math.floor(this.grace / this.maxGrace * 80 + 40);
+			tint.r = this.damTint[0];
+			tint.g = this.damTint[1];
+			tint.b = this.damTint[2];
 		}
 	}
 	else if (this.healed > 0) {
 		if (this.healed < 0.2) {
-			ob.tint = Math.floor(128 * this.healed * 5);
-			ob.r = ob.g = ob.b = 255;
+			tint.a = Math.floor(128 * this.healed * 5);
+			tint.r = tint.g = tint.b = 255;
 		}
 		else {
-			ob.tint = Math.floor(this.healed / this.maxHealed * 80 + 40);
-			ob.r = this.healTint[0];
-			ob.g = this.healTint[1];
-			ob.b = this.healTint[2];
+			tint.a = Math.floor(this.healed / this.maxHealed * 80 + 40);
+			tint.r = this.healTint[0];
+			tint.g = this.healTint[1];
+			tint.b = this.healTint[2];
 		}
 	}
 	else {
-		ob.tint = 0;
+		tint.a = 0;
 	}
 
-	return ob;
+	return tint;
 };
 
 /**
@@ -518,7 +533,8 @@ HittableGameObject.prototype.getSoundType = function () {
 
 HittableGameObject.prototype.playHitSound = function () {
 	switch (this.getSoundType()) {
-		case HitSoundType.kMuted: break;
+		case HitSoundType.kMuted:
+			break;
 		case HitSoundType.kWood:
 			app.audio.playFX(this.hitSounds[HitSoundType.kWood][0]);
 			break;
@@ -529,7 +545,7 @@ HittableGameObject.prototype.playHitSound = function () {
 			app.audio.playFX(this.hitSounds[HitSoundType.kMetal][0]);
 			break;
 		// Defaults to flesh sound
-		default: 
+		default:
 			app.audio.playFX(this.hitSounds[HitSoundType.kFlesh][Math.floor(randomRange(0, 2))]);
 			break;
 	}
@@ -537,7 +553,8 @@ HittableGameObject.prototype.playHitSound = function () {
 
 HittableGameObject.prototype.playCritHitSound = function () {
 	switch (this.getSoundType()) {
-		case HitSoundType.kMuted: break;
+		case HitSoundType.kMuted:
+			break;
 		case HitSoundType.kWood:
 			app.audio.playFX(this.hitSounds[HitSoundType.kWood][2]);
 			break;
@@ -548,7 +565,7 @@ HittableGameObject.prototype.playCritHitSound = function () {
 			app.audio.playFX(this.hitSounds[HitSoundType.kMetal][2]);
 			break;
 		// Defaults to flesh sound
-		default: 
+		default:
 			app.audio.playFX(this.hitSounds[HitSoundType.kFlesh][2]);
 			break;
 	}
@@ -557,46 +574,46 @@ HittableGameObject.prototype.playCritHitSound = function () {
 HittableGameObject.prototype.checkAnnoyed = function (enemyHit) {
 	if (this.annoyedDelay <= 0) {
 		this.annoyedDelay = 3;
-		if (this.enemyHit) {
+		if (enemyHit) {
 			this.getAnnoyed(this.annoyedEnemyCount++, enemyHit);
-		}
-		else {
+		} else {
 			this.getAnnoyed(this.annoyedCount++, enemyHit);
 		}
 	}
 };
 
 HittableGameObject.prototype.getAnnoyed = function (num, enemyHit) {
+	var index = -1;
 	if (enemyHit) {
-		var index = -1;
-		if (num < this.annoyedEnemyCues.length) {
+		var lengthEnemy = this.annoyedEnemyCues.length / 2;
+		if (num < lengthEnemy) {
 			index = num;
 		}
-		else if (this.annoyedEnemyCues.length > 0) {
-			index = Math.floor(randomRange(0, this.annoyedEnemyCues.length));
+		else if (lengthEnemy > 0) {
+			index = Math.floor(randomRange(0, lengthEnemy));
 		}
 
 		if (index != -1) {
-			if (app.game.getFocusObject() == this) {
-				// TODO
+			if (app.game.focus == this)
+				app.game.hud.openLeftBubble(this, 25, this.annoyedEnemyCues[index * 2], this.annoyedEnemyCues[index * 2 + 1], 3);
+			else
+				app.game.hud.openRightBubble(this, 25, this.annoyedEnemyCues[index * 2], this.annoyedEnemyCues[index * 2 + 1], 3);
 
-			}
 		}
-	}
-	else {
-		var index = -1;
-		if (num < this.annoyedCues.length) {
+	} else {
+		var length = this.annoyedCues.length / 2;
+		if (num < length) {
 			index = num;
 		}
-		else if (this.annoyedCues.length > 0) {
-			index = Math.floor(randomRange(0, this.annoyedCues.length));
+		else if (length > 0) {
+			index = Math.floor(randomRange(0, length));
 		}
 
 		if (index != -1) {
-			if (app.game.getFocusObject() == this) {
-				// TODO
-
-			}
+			if (app.game.focus == this)
+				app.game.hud.openLeftBubble(this, 25, this.annoyedCues[index * 2], this.annoyedCues[index * 2 + 1], 3);
+			else
+				app.game.hud.openRightBubble(this, 25, this.annoyedCues[index * 2], this.annoyedCues[index * 2 + 1], 3);
 		}
 	}
 };
@@ -607,6 +624,6 @@ HittableGameObject.prototype.setKnockedOutState = function(fromLeft, hitsTaken, 
 HittableGameObject.prototype.setCorpseSmackedState = function(fromLeft) {
 };
 
-HittableGameObject.prototype.setInvulnerable = function(i){
+HittableGameObject.prototype.setInvulnerable = function(i) {
 	this.invunerable = i;
 };

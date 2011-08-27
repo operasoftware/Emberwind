@@ -47,6 +47,13 @@ function InputHandler(canvas, useTouch) {
 			this.release = function (key) {
 				this.keys[key].release();
 			};
+
+			this.anyKeysDown = function() {
+				for (var k = 0; k < 255; k++) {
+					if (this.keys[k].down)return true;
+				}
+				return false;
+			};
 		};
 
 		this.mouse = new Mouse();
@@ -69,6 +76,18 @@ InputHandler.instance = null;
 
 InputHandler.prototype.updateCanvas = function (canvas) {
 	this.setInput(canvas);
+};
+
+InputHandler.prototype.anythingPressed = function () {
+	if (this.keyboard != null) {
+		return (GameInput.instance.anyKeysDown() || this.mouse.left.down);
+	}
+
+	for (var t in this.touches) {
+		if (this.touches.hasOwnProperty(t)) return true;
+	}
+
+	return false;
 };
 
 InputHandler.prototype.updateSize = function (canvas) {
@@ -153,7 +172,6 @@ InputHandler.prototype.setInput = function (canvas) {
 					break;
 				}
 			}
-
 			_this.bufferedInput.push(function () {_this.keyboard.press(e.keyCode);});
 		};
 
@@ -164,7 +182,6 @@ InputHandler.prototype.setInput = function (canvas) {
 					break;
 				}
 			}
-
 			_this.bufferedInput.push(function () {_this.keyboard.release(e.keyCode);});
 		};
 	}
@@ -233,9 +250,10 @@ var Buttons = {
 	right : 3,
 	jump  : 4,
 	attack : 5,
-	enter  : 6,
+	interact  : 6,
 	esc : 7,
-	render : 8
+	render : 8,
+	skip : 9
 };
 
 function GameInputProto() {
@@ -307,8 +325,7 @@ function GameInputProto() {
 
 	for (var name in Buttons) {
 		if (Buttons.hasOwnProperty(name)) {
-			var btn = new GameButton(name);
-			this.buttons[Buttons[name]] = btn;
+			this.buttons[Buttons[name]] = new GameButton(name);
 		}
 	}
 }
@@ -343,7 +360,7 @@ function GameInputKeyboard() {
 	this.keyTrans = {
 		// Key is keycode, value is Button identifier
 		16 : Buttons.attack,
-		17 : Buttons.enter,
+		17 : Buttons.interact,
 		27 : Buttons.esc,
 		32 : Buttons.attack,
 		37 : Buttons.left,
@@ -354,6 +371,7 @@ function GameInputKeyboard() {
 	};
 
 	Buttons.jump = Buttons.up;
+	Buttons.skip = Buttons.attack;
 
 	for (var key in this.keyTrans) {
 		if (this.keyTrans.hasOwnProperty(key)) {
@@ -382,6 +400,14 @@ GameInputKeyboard.prototype.update = function (dt) {
 			}
 		}
 	}
+};
+
+GameInputKeyboard.prototype.anyKeysDown = function() {
+	for (var b = 0; b < this.buttons.length; b++) {
+		var button = this.buttons[b];
+		if (button != null && button.down) return true;
+	}
+	return false;
 };
 
 // ----------------------------------------------------------------------------

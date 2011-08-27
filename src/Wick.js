@@ -97,7 +97,19 @@ Wick.prototype.init = function(reinit) {
 	this.iceBoltFireSound = dep.getSFX("wick_bolt");
 	this.iceBoltChargeSound = dep.getSFX("wick_charge");
 
-	// todo annoyedCues.
+	var wickStr = dep.getString("STR_WICK");
+	this.annoyedCues.push(dep.getString("STR_WICK_ANNOYED1"));
+	this.annoyedCues.push(wickStr);
+	this.annoyedCues.push(dep.getString("STR_WICK_ANNOYED2"));
+	this.annoyedCues.push(wickStr);
+	this.annoyedCues.push(dep.getString("STR_WICK_ANNOYED3"));
+	this.annoyedCues.push(wickStr);
+	this.annoyedCues.push(dep.getString("STR_WICK_ANNOYED4"));
+	this.annoyedCues.push(wickStr);
+	this.annoyedCues.push(dep.getString("STR_WICK_ANNOYED5"));
+	this.annoyedCues.push(wickStr);
+	this.annoyedCues.push(dep.getString("STR_WICK_ANNOYED6"));
+	this.annoyedCues.push(wickStr);
 
 	this.attackWasReleased = true;
 	this.iceBoltCharge = 0;
@@ -182,8 +194,7 @@ Wick.prototype.onInteract = function() {
 		game.completeStage();
 		return false;
 	} else {
-		// todo: show messages
-		return true;
+		game.hud.openRightBubble(this, 30, ResourceDepot.getInstance().getString("STR_WICK_INTERACT"), ResourceDepot.getInstance().getString("STR_WICK"), 3);
 	}
 };
 
@@ -204,7 +215,7 @@ Wick.prototype.onTrigger = function(param, volume, object) {
 	if (param == "cloud") {
 		this.hit(1, false);
 	} else if (param == "exit") {
-		if (object.gameObj instanceof PlayerCharacter) {
+		if (object.particle instanceof PlayerCharacter) {
 			if (game.stageObjectivesComplete())
 				game.completeStage();
 		}
@@ -233,6 +244,32 @@ Wick.prototype.exitStage = function() {
 	this.fsm.setState(Wick.states.kStateExitStage);
 };
 
+Wick.prototype.getIdolInfo = function() {
+	return new IdolInfo(IdolType.kIdolWick, GemType.kGemBlue, GemType.kGemBlue, MetalType.kMetalSilver);
+};
+
+Wick.prototype.setAutoExit = function(rect) {
+	assert(rect instanceof Rectf);
+	var volume = new TriggerVolume("interact", rect, this, createCallback(Wick.prototype.onAutoExit, this), "enter", "exit");
+	app.game.currentStage.triggerSystem.addVolume(volume);
+	this.autoExitTrigger = volume;
+};
+
+Wick.prototype.setNonAutoExit = function() {
+	app.game.currentStage.triggerSystem.removeVolume(this.autoExitTrigger);
+	this.autoExitTrigger = null;
+};
+
+Wick.prototype.onAutoExit = function(param, volume, object) {
+	var game = app.game;
+	if (object.particle instanceof PlayerCharacter) {
+		if (game.stageObjectivesComplete()) {
+			game.completeStage();
+		}
+	}
+};
+
+
 // ----------------------------------------------------------------------------
 
 function WickIdleState() {
@@ -250,6 +287,7 @@ WickIdleState.prototype.enter = function(msg, fromState) {
 	var r = new Rectf(-20, -20, -10, 44);
 	this.host.setInteractive(r);
 	this.host.setInvulnerable(true);
+	this.host.setAutoExit(r);
 };
 
 WickIdleState.prototype.update = function(dt) {
@@ -262,6 +300,7 @@ WickIdleState.prototype.update = function(dt) {
 
 WickIdleState.prototype.leave = function() {
 	this.host.setNonInteractive();
+	this.host.setNonAutoExit();
 };
 
 WickIdleState.prototype.message = function(msg) {
@@ -306,6 +345,7 @@ WickEnterStageState.prototype.update = function(dt) {
 };
 
 WickEnterStageState.prototype.leave = function() {
+	this.host.updateOffScreen = false;
 };
 
 WickEnterStageState.prototype.message = function(message) {
@@ -335,7 +375,22 @@ WickLandState.prototype.enter = function(msg, fromState) {
 	this.host.setAndPlay(this.host.dismount, false);
 	this.timeInState = 0;
 
-	// todo: Light the closest lamppost if any.
+	var lampPosts = app.game.getGameObjectByType(Lamppost);
+	if (lampPosts.length != 0) {
+		var bestObj = lampPosts[0];
+		var bestDist = this.host.getPos().subNew(bestObj.getPos()).MagnitudeSquared();
+
+		for (var i = 0; i < lampPosts.length; i++) {
+			var testObj = lampPosts[i];
+			var testDist = testObj.getPos().subNew(this.host.getPos()).MagnitudeSquared();
+			if (testDist < bestDist) {
+				bestDist = testDist;
+				bestObj = testObj;
+			}
+		}
+
+		bestObj.light(this.host.player);
+	}
 };
 
 WickLandState.prototype.update = function(dt) {
@@ -354,10 +409,10 @@ WickLandState.prototype.update = function(dt) {
 };
 
 WickLandState.prototype.leave = function() {
-	this.host.updateOffScreen = true;
+	//this.host.updateOffScreen = true;
 	this.host.setPos(new Vec2(Wick.kWickDismountOffsetX, Wick.kWickDismountOffsetY).add(this.host.player.getPos()));
 	this.host.player.enable(true);
-	//todo:app.game.setStageStarted();
+	app.game.setStageStarted();
 };
 
 WickLandState.prototype.message = function(message) {

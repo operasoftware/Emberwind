@@ -811,7 +811,7 @@ function SimpleMovementComponent() {
     this.collisionFlag = false;
     this.gravityLineY = -1;
 
-    //BaseMovementComponent.call(this);
+	this.velocity = new Vec2(0, 0);
 }
 
 SimpleMovementComponent.prototype = new BaseMovementComponent();
@@ -859,7 +859,6 @@ SimpleMovementComponent.prototype.Update = function (dt) {
         var endPos = workingPos.copy();
         endPos.add(move);
 
-        var timeLeft = 1;
         var test = this.SweepTest(workingPos, endPos);
         if (test.foundCollision) {
             this.collisionFlag = true;
@@ -882,16 +881,7 @@ SimpleMovementComponent.prototype.Update = function (dt) {
                 this.allowedBounces--;
             }
 
-            move = this.ClipToContacts(move, bounceFactor);
             this.velocity = this.ClipToContacts(this.velocity, bounceFactor);
-
-            // And use up the rest of the alloted time.
-            timeLeft -= moveTime;
-
-            // Figure out new end point
-            endPos = move.copy();
-            endPos.mul(timeLeft);
-            endPos.add(workingPos);
         }
         else {
             workingPos = endPos;

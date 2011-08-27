@@ -32,7 +32,10 @@ AnimationHandle.prototype.clone = function() {
 };
 
 AnimationHandle.prototype.update = function(dt) {
-	if(!this.playing) return;
+	if (!this.playing) {
+		this.currentFrame = Math.floor(this.time * this.animation.framerate) % this.animation.nbrOfFrames;
+		return;
+	}
 
 	var oldTime = this.time;
 	this.time += this.speed * dt;
@@ -104,12 +107,16 @@ AnimationHandle.prototype.mirror = function() {
 AnimationHandle.prototype.play = function(loop) {
 	this.playTo = -1;
 	if(loop === undefined) loop = true;
+	if (this.time >= this.end * this.animation.animationLength - 0.5 / this.animation.framerate)
+		this.time = this.start * this.animation.animationLength;
 	this.loop = loop;
 	this.playing = true;
 };
 
 AnimationHandle.prototype.playToTime = function(t) {
 	this.playTo = t;
+	if (this.time >= this.playTo * this.animation.animationLength - 0.5 / this.animation.framerate)
+		this.time = this.start * this.animation.animationLength;
 	this.playing = true;
 };
 
@@ -162,21 +169,6 @@ AnimationHandle.prototype.setRange = function(s, e) {
 
 AnimationHandle.prototype.setSpeed = function(speed) {
 	this.speed = speed;
-};
-
-AnimationHandle.prototype.playToTime = function(time) {
-	this.end = time;
-	this.loop = false;
-};
-
-AnimationHandle.prototype.playToEvent = function(name) {
-	for (var i = 0; i < this.animation.events.length; i++) {
-		var e = this.animation.events[i];
-		if(e.name == name){
-			this.playToTime(e.time / this.animation.animationLength);
-			break;
-		}
-	}
 };
 
 AnimationHandle.prototype.getLength = function() {

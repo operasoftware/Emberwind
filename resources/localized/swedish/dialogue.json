@@ -1,0 +1,181 @@
+[
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Graham! Vad i hela v\u00e4rlden p\u00e5g\u00e5r h\u00e4r!?",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Sm\u00e5dj\u00e4vlar!",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Sm\u00e5dj\u00e4vlar!? Du skojar med mig.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Grendale har bel\u00e4grats av sm\u00e5dj\u00e4vlarna, byborna beh\u00f6ver din hj\u00e4lp.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Oroa dig inte, Wick och jag tar hand om dem.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Sm\u00e5dj\u00e4vlarnas skepp avfyrar sina kanoner mot staden.",
+				"who": "Wick",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Verkar vara en ordentlig invasion.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Gnom-varning! Ta dem, grabbar!",
+				"who": "Scout",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "stage1"
+	},
+	{
+		"trigger": "man3",
+		"cues": [
+			{
+				"text": "Kindle, r\u00e4dda folket i Grendale.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "girl_1",
+		"cues": [
+			{
+				"text": "Jag har en gammal \u00f6nskebrunn i min tr\u00e4dg\u00e5rd.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H1"
+	},
+	{
+		"trigger": "male_1",
+		"cues": [
+			{
+				"text": "Du m\u00e5ste ta i f\u00f6r att tr\u00e4ffa ordentligt.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H2"
+	},
+	{
+		"trigger": "male_2",
+		"cues": [
+			{
+				"text": "Donguri \u00e4r en utforskares dr\u00f6m.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H3"
+	},
+	{
+		"trigger": "male_3",
+		"cues": [
+			{
+				"text": "Alla hus med ljusen t\u00e4nda \u00e4r skyddade.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H1"
+	},
+	{
+		"trigger": "male_4",
+		"cues": [
+			{
+				"text": "Eldflugor lyser n\u00e4ra hemligheter.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H2"
+	},
+	{
+		"trigger": "girl_2",
+		"cues": [
+			{
+				"text": "Var sn\u00e4ll mot nissar om du vill ha deras hj\u00e4lp.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H3"
+	},
+	{
+		"trigger": "girl_3",
+		"cues": [
+			{
+				"text": "Min v\u00e4n Sue flyttade till byn Mimiga.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	},
+	{
+		"trigger": "male_5",
+		"cues": [
+			{
+				"text": "Din stav sl\u00e5r kedjeslag mitt i strider.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	}
+]

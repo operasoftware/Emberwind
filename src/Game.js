@@ -1,12 +1,3 @@
-/****
- * TODO:
- *	displayShieldHit
- *  displayCritHit
- *  displayHit
- *  displayShielZeroHit
- *  getFocusObject
- */
-
 /**
  * The Game class manages the ingame state.
  *
@@ -18,7 +9,7 @@ function Game(resources) {
 
 	this.currentStage = null;
 	this.mainStage = null;
-	this.stages = [];
+	this.stages = {};
 
 	this.camera = new Vec2(0, 0);
 	this.cameraConstraint = new Rectf(0, 0, 0, 0);
@@ -40,17 +31,24 @@ function Game(resources) {
 	this.iteratingObjects = 0;
 	this.currentFoe = null;
 	this.currentFoeTimeout = 0;
-	this.score = 0;
 	this.scoreObservers = [];
 
 	this.deathRow = [];
 
+	this.score = 0;
 	this.tallyInfo = null;
 
 	this.fadeParam = 0;
 	this.fadeOut = false;
+	this.respawn = false;
+	this.isInCave = false;
 
 	this.pendingMessages = [];
+
+	this.dialogueSystem = new DialogueSystem();
+	this.dialogueTriggerTimer = 0;
+
+	this.stagesFinished = -1;
 
 	/**
 	 * Provides a set of shapes based on the given coordinates
@@ -124,6 +122,29 @@ Game.prototype.init = function () {
 	this.points_10 = depot.getImage("floating_points", "10_points");
 	this.points_1 = depot.getImage("floating_points", "1_points");
 
+	this.plusHealth = [];
+	this.plusHealth[0] = depot.getImage("battle_text", "plus_one");
+	this.plusHealth[1] = depot.getImage("battle_text", "plus_two");
+	this.plusHealth[2] = depot.getImage("battle_text", "plus_three");
+	this.plusHealth[9] = depot.getImage("battle_text", "plus_ten");
+
+	this.minusHealth = [];
+	this.minusHealth[0] = depot.getImage("battle_text", "minus_one");
+	this.minusHealth[1] = depot.getImage("battle_text", "minus_two");
+	this.minusHealth[2] = depot.getImage("battle_text", "minus_three");
+	this.minusHealth[9] = depot.getImage("battle_text", "minus_ten");
+
+	// Missing atlas?
+	this.critHealth = [];
+	this.critHealth[1] = depot.getImage("critical_hits", "crit_two", true);
+	this.critHealth[3] = depot.getImage("critical_hits", "crit_four", true);
+	this.critHealth[5] = depot.getImage("critical_hits", "crit_six", true);
+	this.critHealth[7] = depot.getImage("critical_hits", "crit_eight", true);
+	this.critHealth[9] = depot.getImage("critical_hits", "crit_ten", true);
+
+	this.shieldHealth = depot.getImage("battle_text", "shield");
+	this.shieldZeroHealth = depot.getImage("battle_text", "shield_zero");
+
 	this.initialized = true;
 };
 
@@ -144,10 +165,15 @@ Game.prototype.loadStage = function(stageName, callback) {
 	this.tallyInfo = new TallyInfo();
 
 	this.hud.init();
-	this.scoreObservers = [this.hud.scoreDisp] // TEMP
+	this.scoreObservers = [this.hud.scoreDisp, this.hud.acornDisp]; // TEMP
+	for (var i = 0; i < this.scoreObservers.length; i++) {
+		this.scoreObservers[i].onScoreSet(this.score);
+		this.scoreObservers[i].onAcornsSet(this.tallyInfo.acorns);
+	}
 
 	this.initStage(stageName);
-	this.stages = [];
+	this.stages = {};
+	this.dialogueSystem.resetAllTriggers();
 
 	return true;
 };
@@ -156,10 +182,16 @@ Game.prototype.initStage = function(stageName) {
 	this.currentStage = new Stage(stageName, createCallback(this.preloadCallback, this));
 	this.currentStage.initStage(createCallback(this.preloadCallback, this));
 
+	this.dialogueTriggerTimer = 20;
+
+	if (this.stagesFinished == -1) {
+		this.stagesFinished = 0;
+	}
+
 	this.setUpStage();
 };
 
-Game.prototype.setUpStage = function(){
+Game.prototype.setUpStage = function() {
 	var gpr = this.currentStage.gameplayExtent;
 	var screenW = this.render.getWidth();
 	var screenH = this.render.getHeight();
@@ -179,6 +211,11 @@ Game.prototype.setUpStage = function(){
 		var halfh = (screenH - gpr.h) / 2;
 		this.cameraConstraint.y0 = halfh;
 		this.cameraConstraint.y1 = halfh;
+	}
+
+	if (!this.isInCave) {
+		this.updateCamera(0);
+		this.updateObjects(0);
 	}
 };
 
@@ -244,7 +281,14 @@ Game.prototype.updateCamera = function(dt) {
 
 Game.prototype.update = function(dt) {
 	if (this.currentStage != null && !this.loadingStage) {
-		//GameInput.instance.update(dt);
+
+		if (this.dialogueTriggerTimer > 0 && this.fadeParam == 0) {
+			this.dialogueTriggerTimer -= dt;
+			if (this.dialogueTriggerTimer <= 0) {
+				this.dialogueTrigger("enter");
+			}
+		}
+
 		this.updateCamera();
 
 		this.updateObjects(dt);
@@ -262,8 +306,8 @@ Game.prototype.update = function(dt) {
 					this.fadeOut = false;
 
 					/*this.currentStage.gameObjects.children.forEach(function(v){
-						v.onDisable();
-					});*/
+					 v.onDisable();
+					 });*/
 					this.focus.onDisable();
 
 					//app.game.currentStage.triggerSystem.reset()
@@ -271,11 +315,12 @@ Game.prototype.update = function(dt) {
 					if (this.enterStage) {
 						this.hud.objectiveDisp.hide(true);
 						this.mainStage = this.currentStage;
-						if(!this.stages[this.targetStage]){
+						this.isInCave = true;
+						if (!this.stages[this.targetStage]) {
 							this.initStage(this.targetStage, null);
 							this.stages[this.currentStage.name] = this.currentStage;
 							this.currentStage.gameObjects.addChild(this.focus);
-						}else{
+						} else {
 							this.currentStage = this.stages[this.targetStage];
 							this.setUpStage();
 						}
@@ -284,12 +329,17 @@ Game.prototype.update = function(dt) {
 
 						this.focus.placeAtExit(this.targetDoorway);
 					} else {
+						this.isInCave = false;
 						this.hud.objectiveDisp.hide(false);
 						var name = this.currentStage.name;
 						this.currentStage = this.mainStage;
 						this.setUpStage();
-						this.focus.placeAtEntrance(this.targetDoorway, name);
+						if (!this.respawn) this.focus.placeAtEntrance(this.targetDoorway, name);
 					}
+
+					this.dialogueTriggerTimer = 0.05;
+
+					app.audio.stopAllSoundFX();
 
 					this.focus.triggerSystem = this.currentStage.triggerSystem;
 
@@ -300,15 +350,16 @@ Game.prototype.update = function(dt) {
 					this.checkStageCompletion();
 
 					/*this.currentStage.gameObjects.children.forEach(function(v){
-						v.onEnable();
-					});*/
+					 v.onEnable();
+					 });*/
 				}
 				this.fadeParam = Math.min(1, this.fadeParam + dt / 0.25);
 			}
 			else
 				this.fadeParam = Math.max(0, this.fadeParam - dt / 0.25);
-			return;
 		}
+
+		this.respawn = false;
 	}
 };
 
@@ -347,51 +398,81 @@ Game.prototype.draw = function() {
 
 Game.prototype.getScreenRect = function () {
 	return new Rectf(-this.camera.x, -this.camera.y,
-                     -this.camera.x + app.maxWidth,
-                     -this.camera.y + app.maxHeight);
+			-this.camera.x + app.maxWidth,
+			-this.camera.y + app.maxHeight);
 };
 
 
 Game.prototype.setFocusObject = function (obj) {
 	this.focus = obj;
-    var idolInfo = this.focus.getIdolInfo();
-    this.hud.healthBarLeft.setIdolInfo(idolInfo, EmotionType.kEmoteNormal, 1, -1, "", "");
-    this.focus.addObserver(this.hud.healthBarLeft);
-    this.hud.show = true; // todo: wrong place
+	var idolInfo = this.focus.getIdolInfo();
+	this.hud.healthBarLeft.setIdolInfo(idolInfo, EmotionType.kEmoteNormal, 1, -1, "", "");
+	this.focus.addObserver(this.hud.healthBarLeft);
+	this.hud.show = true; // todo: wrong place
 };
 
-Game.prototype.displayShieldHit = function () {
+Game.prototype.addChainHit = function () {
 	return;
 };
 
-Game.prototype.displayCritHit = function () {
-	return;
+Game.prototype.displayShieldHit = function (obj) {
+	this.currentStage.particleSystem.spawnImageParticle(this.shieldHealth, obj.getPos().addNew(new Vec2(0, -100)), new Vec2(0, -50), 1.5, true, new Pixel32(255, 0, 0, 128));
 };
 
-Game.prototype.displayHit = function () {
-	return;
+Game.prototype.displayShieldZeroHit = function (obj) {
+	this.currentStage.particleSystem.spawnImageParticle(this.shieldHealth, obj.getPos().addNew(new Vec2(0, -100)), new Vec2(0, -50), 1.5, true, new Pixel32(255, 255, 255, 128));
 };
 
-Game.prototype.displayShielZeroHit = function () {
-	return;
+Game.prototype.displayCritHit = function (obj, hp) {
+	if (hp >= 0 && hp <= 10) {
+		if (this.critHealth[hp - 1] !== undefined) {
+			this.currentStage.particleSystem.spawnImageParticle(this.critHealth[hp - 1], obj.getPos().addNew(new Vec2(0, -100)), new Vec2(0, -30), 2.2, true, new Pixel32(255, 0, 0, 128));
+		}
+	}
+};
+
+Game.prototype.displayHeal = function (obj, hp) {
+	if (hp >= 0 && hp <= 10) {
+		if (this.plusHealth[hp - 1] !== undefined) {
+			this.currentStage.particleSystem.spawnImageParticle(this.plusHealth[hp - 1], obj.getPos().addNew(new Vec2(0, -100)), new Vec2(0, -50), 1.5, true);
+		}
+	}
+};
+
+Game.prototype.displayHit = function (obj, hp) {
+	if (hp >= 0 && hp <= 10) {
+		if (this.minusHealth[hp - 1] !== undefined) {
+			this.currentStage.particleSystem.spawnImageParticle(this.minusHealth[hp - 1], obj.getPos().addNew(new Vec2(0, -100)), new Vec2(0, -50), 1.5, true, new Pixel32(255, 0, 0, 128));
+		}
+	}
 };
 
 Game.prototype.getFocusObject = function () {
 	return this.focus;
 };
 
-Game.prototype.getCurrentPower = function(){
+Game.prototype.getCurrentPower = function() {
 	return 0; //todo: temp sol.
 };
 
-Game.prototype.completeStage = function(){
+Game.prototype.startSpawnSmoke = function (pos) {
+	return;
+};
+
+Game.prototype.completeStage = function() {
 	this.hud.objectiveDisp.hide(true);
 	this.hud.objectiveArrow.hideTargetArrow();
 
-	this.focus.exitOnWick();
+	if (this.dialogueTrigger("exit"))
+		this.completeStageAfterDialogue = true;
+	else {
+		this.completeStageAfterDialogue = false;
+
+		this.focus.exitOnWick();
+	}
 };
 
-Game.prototype.checkStageCompletion = function(){
+Game.prototype.checkStageCompletion = function() {
 	if (this.stageObjectivesComplete()) {
 		var wick = this.currentStage.gameObjects.getObjectsByType(Wick)[0];
 		this.hud.objectiveArrow.showTargetArrow(new Point2(wick.getPos().x, wick.getPos().y - 40));
@@ -413,22 +494,21 @@ Game.prototype.checkStageCompletion = function(){
 	}
 };
 
-Game.prototype.stageObjectivesComplete = function(){
+Game.prototype.stageObjectivesComplete = function() {
 	var houses = this.currentStage.gameObjects.getObjectsByType(House);
 
-    if (houses.length != 0){
-    	for (var i = 0; i < houses.length; i++) {
-    		if(!houses[i].getStatus()) return false;
-    	}
-    	return true;
-    }
-    return false;
+	if (houses.length != 0) {
+		for (var i = 0; i < houses.length; i++) {
+			if (!houses[i].getStatus()) return false;
+		}
+		return true;
+	}
+	return false;
 };
 
 Game.prototype.pushOnDeathRow = function (object) {
 	this.deathRow.push(object);
-	// TODO
-	// Set dead-property of object?
+	// TODO Set dead-property of object?
 };
 
 Game.prototype.updateDeathRow = function () {
@@ -455,7 +535,6 @@ Game.prototype.updateDeathRow = function () {
 	this.deathRow = [];
 };
 
-// TODO
 Game.prototype.addScore = function (score, pos) {
 	this.score += score;
 
@@ -520,11 +599,23 @@ Game.prototype.addScore = function (score, pos) {
 	}
 };
 
-Game.prototype.addAcorn = function () {
-	return;
+Game.prototype.addAcorn = function (a) {
+	this.tallyInfo.acorns += a;
+
+	for (var i = 0; i < this.scoreObservers.length; i++) {
+		this.scoreObservers[i].onAcornsSet(this.tallyInfo.acorns);
+	}
 };
 
 Game.prototype.addMultiplier = function () {
+	this.tallyInfo.multiplier += 0.1;
+
+	for (var i = 0; i < this.scoreObservers.length; i++) {
+		this.scoreObservers[i].onMultiplierSet(this.tallyInfo.multiplier);
+	}
+};
+
+Game.prototype.triggerFireworks = function () {
 	return;
 };
 
@@ -555,6 +646,20 @@ Game.prototype.exitCave = function(tgtEntrance) {
 	}
 };
 
+Game.prototype.doRespawn = function() {
+	this.focus.setPos(this.focus.lastLamppost.getPos());
+	this.focus.inWater = false;
+	this.focus.regenerate();
+	this.focus.fsm.setState(PCStates.kStateIdle);
+
+	if (this.isInCave) {
+		this.respawn = true;
+		this.fadeParam = 1;
+		this.fadeOut = true;
+		this.enterStage = false;
+	}
+};
+
 Game.prototype.getCullRect = function () {
 	var r = this.getScreenRect();
 	return r.expand(100, 100);
@@ -563,7 +668,7 @@ Game.prototype.getCullRect = function () {
 Game.prototype.setCurrentFoe = function (foe) {
 	this.currentFoeTimeout = 0;
 	if (this.currentFoe != foe) {
-		if(this.currentFoe !== null) this.currentFoe.removeObserver(this.hud.healthBarRight);
+		if (this.currentFoe !== null) this.currentFoe.removeObserver(this.hud.healthBarRight);
 		this.currentFoe = foe;
 		if (foe !== null) {
 			foe.addObserver(this.hud.healthBarRight);
@@ -586,6 +691,11 @@ Game.prototype.checkFoeTimeout = function (dt) {
 Game.prototype.spawnPickupTable = function (table, pos, xmin, xmax, ymin, ymax, count) {
 	for (var i = 0; i < count; i++) {
 		var type = ResourceDepot.instance.getDropType(table);
+		// TODO: Implement fireworks, until then, get another drop type
+		if (type === Pickup.Type.kPickupFireworks) {
+			i--;
+			continue;
+		}
 		this.spawnPickup(type, pos, xmin, xmax, ymin, ymax, 1);
 	}
 };
@@ -595,14 +705,17 @@ Game.prototype.addGameObject = function (object) {
 };
 
 Game.prototype.spawnPickup = function (type, pos, xmin, xmax, ymin, ymax, count) {
-	if (type === Pickup.Type.kPickupMaxType) { return; }
+	if (type === Pickup.Type.kPickupMaxType) {
+		return;
+	}
 	var pickup = null;
+	var dir = null;
 	for (var i = 0; i < count; i++) {
-		var dir = new Vec2(randomRange(xmin, xmax), randomRange(ymin, ymax));
+		dir = new Vec2(randomRange(xmin, xmax), randomRange(ymin, ymax));
 		pickup = new Pickup();
 		pickup.setType(type);
 		pickup.init(false);
-		pickup.setPos(pos);
+		pickup.setPos(pos.copy());
 		pickup.bounce(dir);
 
 		this.addGameObject(pickup);
@@ -617,12 +730,12 @@ Game.prototype.getTileReferences = function () {
 Game.prototype.sendMessageToId = function (id, params) {
 	var objects = this.currentStage.gameObjects.children;
 	for (var i = 0; i < objects.length; i++) {
-		if(objects[i].objId == id){
+		if (objects[i].objId == id) {
 			objects[i].onMessage(params);
 			return;
 		}
 	}
-    this.pendingMessages.push({id:id, params:params});
+	this.pendingMessages.push({id:id, params:params});
 };
 
 Game.prototype.sendMessageToType = function (type, params) {
@@ -636,11 +749,11 @@ Game.prototype.sendPendingMessages = function () {
 	var objects = this.currentStage.gameObjects.children;
 	for (var i = 0; i < objects.length; i++) {
 		var oid = objects[i].objId;
-		if(oid != undefined){
+		if (oid != undefined) {
 			for (var j = 0; j < this.pendingMessages.length; j++) {
-				if(oid == this.pendingMessages[j].id){
+				if (oid == this.pendingMessages[j].id) {
 					objects[i].onMessage(this.pendingMessages[j].params);
-					this.pendingMessages.splice(j, 1);	
+					this.pendingMessages.splice(j, 1);
 					break;
 				}
 			}
@@ -684,6 +797,71 @@ Game.prototype.getCameraPos = function () {
 	return this.camera.copy();
 };
 
+Game.prototype.getGameObjectByType = function (type, rect) {
+	rect = rect === undefined ? null : rect;
+	var objects = this.currentStage.gameObjects.children;
+	var res = [];
+	for (var i = 0; i < objects.length; i++) {
+		var o = objects[i];
+		if (o instanceof type && o.enabled) {
+			if (rect == null || rect.overlaps(o.getObjectExtent().offset(o.getPos()))) {
+				res.push(o);
+			}
+		}
+	}
+	return res;
+};
+
+Game.prototype.setStageStarted = function () {
+	this.dialogueTriggerTimer = 0.05;
+	if (this.currentStage.name == "stage0" && !app.noTutorial) {
+		this.focus.setBlankState();
+		this.showTutorialTip("walk", true);
+	}
+};
+
+Game.prototype.isCurrStageDialogueCompleted = function(trig) {
+	return this.dialogueSystem.isTriggered(this.currentStage.name, trig);
+};
+
+Game.prototype.dialogueTrigger = function(trig) {
+	var didTrigger = this.dialogueSystem.trigger(this.currentStage.name, trig);
+	if (didTrigger) {
+		this.focus.dialogueStarted();
+	}
+	return didTrigger;
+};
+
+Game.prototype.getIdolType = function(str) {
+	switch (str) {
+		case "kindle":
+			return IdolType.kIdolKindle;
+		case "wick":
+			return IdolType.kIdolWick;
+		case "man1":
+			return IdolType.kIdolMan1;
+		case "man2":
+			return IdolType.kIdolMan2;
+		case "man3":
+			return IdolType.kIdolMan3;
+		case "gremlin":
+			return IdolType.kIdolGoblin;
+		case "villager1":
+			return IdolType.kIdolVillager1;
+		case "villager2":
+			return IdolType.kIdolVillager2;
+		case "brownie":
+			return IdolType.kIdolBrownieY;
+		case "gyro":
+			return IdolType.kIdolGyro;
+		case "candlefinger":
+			return IdolType.kIdolCandleFinger;
+		case "flamesprite":
+			return IdolType.kIdolFlamesprite;
+	}
+	return IdolType.kMaxIdols;
+};
+
 
 // Temporary - debugging only
 Game.prototype.step = function (dt) {
@@ -694,26 +872,32 @@ Game.prototype.step = function (dt) {
 };
 
 
+Game.prototype.showTutorialTip = function (tip, newStyle) {
+	if (newStyle)
+		app.setState(appStates.kStateTutorialPage, tip, true);
+	else
+		app.fsm.onTutorialTip(this.resources.getString(tip));
+};
+
 Game.prototype.exitToTallyScreen = function () {
-	//todo
-	app.setState(appStates.kStateMainMenu);
+	app.setState(appStates.kStateStageComplete, null, true);
 };
 
 Game.prototype.getTallyInfo = function () {
 	return this.tallyInfo;
 };
 
-function TallyInfo(){
+function TallyInfo() {
 	this.acorns = 0;
-    this.gremlins = 0;
-    this.chests = 0;
-    this.houses = 0;
-    this.brownies = 0;
-    this.flamesprites = 0;
-    this.speedbonus = 0;
-    this.herobonus = 1;
+	this.gremlins = 0;
+	this.chests = 0;
+	this.houses = 0;
+	this.brownies = 0;
+	this.flamesprites = 0;
+	this.speedbonus = 0;
+	this.herobonus = 1;
 	this.withoutdamagebonus = 1;
-    this.currscore = 0;
-    this.bossdefeat = 0;
-    this.multiplier = 1;
+	this.currscore = 0;
+	this.bossdefeat = 0;
+	this.multiplier = 1;
 }

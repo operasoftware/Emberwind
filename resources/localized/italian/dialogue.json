@@ -1,0 +1,181 @@
+[
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Graham! Che diavolo sta succedendo qui!?",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Gremlin!",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Gremlin!? Mi stai prendendo in giro.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Grendale \u00e8 sotto l'assedio dei Gremlin, gli abitanti hanno bisogno di te.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Non preoccuparti, ci pensiamo io e Wick.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Le navi da guerra dei Gremlin stanno distruggendo le mura della citt\u00e0.",
+				"who": "Wick",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Sembra una vera e propria invasione.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Allarme gnomi! Prendiamoli ragazzi!",
+				"who": "Scout",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "stage1"
+	},
+	{
+		"trigger": "man3",
+		"cues": [
+			{
+				"text": "Kindle, salva il popolo di Grendale.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "girl_1",
+		"cues": [
+			{
+				"text": "Ho un vecchio pozzo dei desideri dietro casa.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H1"
+	},
+	{
+		"trigger": "male_1",
+		"cues": [
+			{
+				"text": "Devi darci dentro con i colpi per tramortirli.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H2"
+	},
+	{
+		"trigger": "male_2",
+		"cues": [
+			{
+				"text": "I Donguri sono un sogno degli esploratori.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H3"
+	},
+	{
+		"trigger": "male_3",
+		"cues": [
+			{
+				"text": "Le case con le luci accese sono protette.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H1"
+	},
+	{
+		"trigger": "male_4",
+		"cues": [
+			{
+				"text": "Le lucciole brillano quando ci sono dei segreti vicino.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H2"
+	},
+	{
+		"trigger": "girl_2",
+		"cues": [
+			{
+				"text": "Non abusare dei Folletti se vuoi il loro aiuto.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H3"
+	},
+	{
+		"trigger": "girl_3",
+		"cues": [
+			{
+				"text": "La mia amica Sue \u00e8 andata a vivere nel villaggio di Mimiga.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	},
+	{
+		"trigger": "male_5",
+		"cues": [
+			{
+				"text": "Il tuo bastone colpir\u00e0 a raffica quando sarai in mezzo ad un combattimento.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	}
+]

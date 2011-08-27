@@ -381,6 +381,32 @@ TileLayer.prototype.draw = function(render, cameraX, cameraY, timeSinceStart, sc
 	}
 };
 
+TileLayer.prototype.replaceTiles = function(from, to, rect){
+	var tileStartW = Clamp(0, Math.floor(rect.x0 / this.tileWidth), this.width * this.tileWidth - 1);
+	var tileEndW = Clamp(0, Math.floor(rect.x1 / this.tileWidth), this.width * this.tileWidth - 1);
+	var tileStartH = Clamp(0, Math.floor(rect.y0 / this.tileHeight), this.height * this.tileHeight - 1);
+	var tileEndH = Clamp(0, Math.floor(rect.y1 / this.tileHeight), this.height * this.tileHeight - 1);
+
+	var dep = ResourceDepot.getInstance();
+
+	var changed = false;
+
+	for ( var x = tileStartW; x < tileEndW; x++) {
+		for ( var y = tileStartH; y < tileEndH; y++) {
+			var tileId = this.data[x + y * this.width];
+			if (tileId >= 0) {
+				var tile = dep.getTile(tileId);
+				if (tile.name != null && tile.name.indexOf(from) == 0) {
+					this.data[x + y * this.width] = dep.getTileIndex(to + from.substring(from.length));
+					changed = true;
+				}
+			}
+		}
+	}
+
+	if(changed) this.createLayers();
+};
+
 /*
  * SpriteLayer class
  */

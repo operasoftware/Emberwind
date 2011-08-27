@@ -2,9 +2,9 @@
  * Class that manages the application. Changes between states.
  *
  * @param canvasId canvasId the id of the canvas element (or place holder).
+ * @param shaders Shaders for WebGL
  * @param initCallback a callback that will be called once all resources are
  *			loaded.
- * @returns {App}
  */
 function App(canvasId, shaders, initCallback) {
 	this.canvasId = canvasId;
@@ -18,12 +18,16 @@ function App(canvasId, shaders, initCallback) {
 	this.useTouch = false;
 	this.frontToBack = false;
 
-	this.debug = false;
+	this.debug = true;
 	this.debugKeyboardTimeout = 0;
 	this.debugAudio = false;
 	this.debugMovementTrigger = false;
+	this.noTutorial = false;
 	this.showFPS = false;
 	this.freezeFrame = false;
+
+	this.showSkipButton = false;
+	this.skipText = new Text();
 
 	this.resources = new ResourceDepot();
 	this.resources.setCallback(createCallback(this.resourceCallback, this));
@@ -33,7 +37,12 @@ function App(canvasId, shaders, initCallback) {
 		appStates.kStateDeveloperSplash, DeveloperSplashState,
 		appStates.kStateMainMenu, MainMenuState,
 		appStates.kStateLoadingStage, LoadingStageState,
-		appStates.kStateInGame, InGameState ];
+		appStates.kStateInGame, InGameState,
+		appStates.kStateStageComplete, StageCompleteState,
+		appStates.kStateYesNoDialog, YesNoDialogState,
+		appStates.kStateTutorialPage, TutorialPageState,
+		appStates.kStateDialogue, DialogueState,
+		appStates.kStoryBoardState, StoryboardState];
 	this.fsm = new AppFSM(this, statesList);
 	this.newState = -1;
 	this.newMessage = null;
@@ -79,7 +88,7 @@ function App(canvasId, shaders, initCallback) {
 
 	this.game = new Game(this.resources);
 
-	this.audio = new Audio(this);
+	this.audio = new Audio();
 
 	this.render = null;
 	this.fillScreen = true;
@@ -106,8 +115,6 @@ function App(canvasId, shaders, initCallback) {
 	this.frameFont = null;
 
 	this.resources.init();
-
-	return this;
 }
 
 /**
@@ -118,7 +125,12 @@ var appStates = {
 	kStateDeveloperSplash : 1,
 	kStateMainMenu : 2,
 	kStateLoadingStage : 3,
-	kStateInGame : 4
+	kStateInGame : 4,
+	kStateStageComplete : 5,
+	kStateYesNoDialog : 6,
+	kStateTutorialPage : 7,
+	kStateDialogue : 8,
+	kStoryBoardState : 9
 };
 
 App.instance = null;
@@ -133,6 +145,10 @@ App.getInstance = function() {
 
 App.prototype = {};
 App.constructor = App;
+
+App.Messages = {
+	kYesNoDialogMsg : 0
+};
 
 /**
  * This is called when all resources have been loaded.
@@ -215,10 +231,18 @@ App.prototype.update = function(dt) {
 	if (InputHandler.instance !== null) {
 		InputHandler.instance.update(dt);
 		GameInput.instance.update(dt);
-		if(this.debug) this.updateDebug(dt);
+		if (this.debug) this.updateDebug(dt);
 	}
 
-	if(this.freezeFrame) dt = 0;
+	if (this.showSkipButton) {
+		if (this.useTouch) {
+			if (InputHandler.instance.touches.length != 0)
+				this.fsm.message("skip");
+		} else if (GameInput.instance.pressed(Buttons.attack) || GameInput.instance.pressed(Buttons.interact) || InputHandler.instance.mouse.left.down)
+			this.fsm.message("skip");
+	}
+
+	if (this.freezeFrame) dt = 0;
 
 	if (this.stateMode == this.stateModes.kStateActive) {
 		this.fsm.update(dt);
@@ -254,30 +278,26 @@ App.prototype.updateDebug = function(dt) {
 		return;
 	}
 
-	var change = false;
-	if (InputHandler.instance.keyboard.keys[49].down) { // 1
+	var change = true;
+	var keyboardKeys = InputHandler.instance.keyboard.keys;
+	if (keyboardKeys[49].down) { // 1
 		this.debugAudio = !this.debugAudio;
-		change = true;
-	} else if (InputHandler.instance.keyboard.keys[50].down) { // 2
+	} else if (keyboardKeys[50].down) { // 2
 		this.debugMovementTrigger = !this.debugMovementTrigger;
-		change = true;
-	} else if (InputHandler.instance.keyboard.keys[51].down) { // 3
+	} else if (keyboardKeys[51].down) { // 3
 		this.showFPS = !this.showFPS;
-		change = true;
-	} else if (InputHandler.instance.keyboard.keys[52].down) { // 4
+	} else if (keyboardKeys[52].down) { // 4
 		this.freezeFrame = !this.freezeFrame;
 		this.render.maxCalls = this.freezeFrame ? 0 : 1000;
-		change = true;
-	} else if (InputHandler.instance.keyboard.keys[53].down) { // 5
+	} else if (keyboardKeys[53].down) { // 5
 		this.frontToBack = !this.frontToBack;
 		this.createRender();
-		change = true;
-	} else if (InputHandler.instance.keyboard.keys[74].down) {// J
+	} else if (keyboardKeys[74].down) {// J
 		this.render.maxCalls++;
-		change = true;
-	} else if (InputHandler.instance.keyboard.keys[75].down) { // K
+	} else if (keyboardKeys[75].down) { // K
 		this.render.maxCalls--;
-		change = true;
+	} else {
+		change = false;
 	}
 
 	if (change) this.debugKeyboardTimeout = 0.2;
@@ -289,10 +309,12 @@ App.prototype.draw = function() {
 		if (this.screenTransition) this.screenTransition.draw(this.render);
 		if (this.showFPS) this.drawFPS();
 		if (this.debug && GameInput.instance) this.drawDebug();
+		if (this.showSkipButton) this.drawSkipButton();
 		this.fsm.draw(this.render);
 	} else {
 		this.render.clear();
 		this.fsm.draw(this.render);
+		if (this.showSkipButton) this.drawSkipButton();
 		if (this.debug && GameInput.instance) this.drawDebug();
 		if (this.showFPS) this.drawFPS();
 		if (this.screenTransition) this.screenTransition.draw(this.render);
@@ -301,7 +323,7 @@ App.prototype.draw = function() {
 	this.render.flush();
 };
 
-App.prototype.drawDebug = function(){
+App.prototype.drawDebug = function() {
 	var inp = GameInput.instance;
 	var str = "";
 	for (var b in inp.buttons) {
@@ -311,15 +333,15 @@ App.prototype.drawDebug = function(){
 	}
 
 	inp = InputHandler.instance;
-	if(!this.useTouch) str = "mouse: " + inp.mouse.x + " " + inp.mouse.y + " " + str;
+	if (!this.useTouch) str = "mouse: " + inp.mouse.x + " " + inp.mouse.y + " " + str;
 	this.render.drawSystemText(str, 10, 10, this.render.white);
 
-	if(this.frontToBack) this.render.drawSystemText("Front to back", 730, 10, this.render.white);
+	if (this.frontToBack) this.render.drawSystemText("Front to back", 730, 10, this.render.white);
 
-	if(this.debugAudio) this.audio.draw(this.render);
+	if (this.debugAudio) this.audio.draw(this.render);
 };
 
-App.prototype.drawFPS = function(){
+App.prototype.drawFPS = function() {
 	this.frameCount++;
 	if (this.frameCount == 10) {
 		var date = new Date().getTime();
@@ -334,13 +356,18 @@ App.prototype.drawFPS = function(){
 	if (this.frameText != null) this.render.drawText(this.frameText, 630, 15, 1, true);
 };
 
+App.prototype.drawSkipButton = function() {
+	this.skipText.draw(this.render, (this.useTouch ? 750 : 730) - this.skipText.canvas.width, 565 - this.skipText.canvas.height / 2);
+	if (!this.useTouch) this.render.drawImage(this.getControlImage(Buttons.skip), 750, 565, 0, true);
+};
+
 /**
  * Creates a new render.
  *
  * @param {Boolean} useGL True if WebGL should be used, false for canvas.
  */
 App.prototype.createRender = function(useGL) {
-	if(this.render !== null) this.render.evict();
+	if (this.render !== null) this.render.evict();
 	var oldRender = this.render;
 	var oldCanvas = document.getElementById(this.canvasId);
 	var canvasParent = oldCanvas.parentNode;
@@ -368,7 +395,7 @@ App.prototype.createRender = function(useGL) {
 		this.render = new RenderCanvas(canvas, 1, this.frontToBack);
 	}
 
-	if(this.freezeFrame) this.render.maxCalls = oldRender.maxCalls;
+	if (this.freezeFrame) this.render.maxCalls = oldRender.maxCalls;
 
 	canvasParent.replaceChild(canvas, oldCanvas);
 
@@ -468,6 +495,10 @@ App.prototype.getURLOptions = function () {
 		this.fillScreen = false;
 	}
 
+	if (url.search("[\\?&]notutorial") !== -1) {
+		this.noTutorial = true;
+	}
+
 	if (url.search("[\\?&]stage=") !== -1) {
 		var r = /[\\?&]stage=([^&]*)/;
 		this.skipToStage = r.exec(url)[1];
@@ -495,6 +526,67 @@ App.prototype.enableDebugging = function () {
 	}
 };
 
+App.prototype.getControlImage = function(c) {
+	var dep = ResourceDepot.getInstance();
+	if (this.useTouch) {
+		switch (c) {
+			case Buttons.jump:
+				return dep.getImage("ControlsiPhoneButtonHalfrezY", "default", false);
+			case Buttons.attack:
+				return dep.getImage("ControlsiPhoneButtonHalfrezA", "default", false);
+			case Buttons.interact:
+				return dep.getImage("ControlsiPhoneButtonHalfrezB", "default", false);
+			case Buttons.up:
+				return dep.getImage("ControlsXboxLarge", "dpad_u", false);
+			case Buttons.down:
+				return dep.getImage("ControlsXboxLarge", "dpad_d", false);
+			case Buttons.left:
+				return dep.getImage("ControlsXboxLarge", "dpad_l", false);
+			case Buttons.right:
+				return dep.getImage("ControlsXboxLarge", "dpad_r", false);
+			case Buttons.skip:
+				return dep.getImage("ControlsiPhoneButtonHalfrezX", "default", false);
+		}
+	} else {
+		switch (c) {
+			case Buttons.jump:
+				return dep.getImage("ControlsMacPC", "button_up", true);
+			case Buttons.attack:
+				return dep.getImage("ControlsMacPC", "button_space", true);
+			case Buttons.interact:
+				return dep.getImage("ControlsMacPC", "button_ctrl", true);
+			case Buttons.up:
+				return dep.getImage("ControlsMacPC", "button_up", true);
+			case Buttons.down:
+				return dep.getImage("ControlsMacPC", "button_down", true);
+			case Buttons.left:
+				return dep.getImage("ControlsMacPC", "button_left", true);
+			case Buttons.right:
+				return dep.getImage("ControlsMacPC", "button_right", true);
+			case Buttons.skip:
+				return dep.getImage("ControlsMacPC", "button_space", true);
+		}
+	}
+	return null;
+};
+
+App.prototype.startDialogue = function() {
+	this.fsm.setState(appStates.kStateDialogue, null, true);
+};
+
+App.prototype.setShowSkipButton = function(show) {
+	show = show === undefined ? true : show;
+
+	this.showSkipButton = show;
+
+	if (this.useTouch)
+		this.skipText.set(this.resources.getString("STR_TAP_SCREEN_TO_SKIP"), "BackButtonFont");
+	else
+		this.skipText.set(this.resources.getString("STR_SKIP"), "BackButtonFont");
+
+};
+
+
 /**
  * A application loop. When created the callback will be called until stop is
  * called.
@@ -511,7 +603,9 @@ function AppLoop(callback, that) {
 		if (!keepUpdating) return;
 		requestAnimFrame(loop);
 		var time = new Date();
-		callback.call(that, (time - lastLoopTime) / 1000);
+		var dt = (time - lastLoopTime) / 1000;
+		if (dt >= 3) dt = 0.25;
+		callback.call(that, dt);
 		lastLoopTime = time;
 	}
 

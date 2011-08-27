@@ -1,0 +1,181 @@
+[
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Graham ! Que se passe-t-il ici ?",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Des gremlins !",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Des gremlins ?! Tu plaisantes ?",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Grendale est assi\u00e9g\u00e9e par les gremlins, les villageois ont besoin de ton aide.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Ne t'inqui\u00e8te pas, M\u00e8che et moi allons leur r\u00e9gler leur compte.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Les vaisseaux gremlins tirent sur la ville.",
+				"who": "Wick",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "\u00c7a m'a tout l'air d'une invasion.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Gnomes rep\u00e9r\u00e9s ! \u00c0 vous de jouer, les gars !",
+				"who": "Scout",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "stage1"
+	},
+	{
+		"trigger": "man3",
+		"cues": [
+			{
+				"text": "Bras\u00e9ro, sauve le peuple de Grendale.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "girl_1",
+		"cues": [
+			{
+				"text": "J'ai un vieux puits \u00e0 voeux dans mon jardin.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H1"
+	},
+	{
+		"trigger": "male_1",
+		"cues": [
+			{
+				"text": "Mets ton poids \u00e0 profit lorsque tu assommes quelqu'un.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H2"
+	},
+	{
+		"trigger": "male_2",
+		"cues": [
+			{
+				"text": "Les donguris sont le r\u00eave de tout explorateur.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H3"
+	},
+	{
+		"trigger": "male_3",
+		"cues": [
+			{
+				"text": "Toutes les maisons \u00e9clair\u00e9es sont prot\u00e9g\u00e9es.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H1"
+	},
+	{
+		"trigger": "male_4",
+		"cues": [
+			{
+				"text": "Les lucioles luisent lorsqu'un secret est proche.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H2"
+	},
+	{
+		"trigger": "girl_2",
+		"cues": [
+			{
+				"text": "Respecte les brownies si tu veux qu'ils t'aident.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H3"
+	},
+	{
+		"trigger": "girl_3",
+		"cues": [
+			{
+				"text": "Mon amie Sara est partie vivre au village Mimiga.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	},
+	{
+		"trigger": "male_5",
+		"cues": [
+			{
+				"text": "Ta canne accumulera de l'\u00e9nergie dans le feu de l'action.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	}
+]

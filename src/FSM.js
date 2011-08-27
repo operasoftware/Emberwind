@@ -17,7 +17,10 @@ function FSM(host, states, onStateChange) {
 	for (var i = 0; i < states.length; i += 2) {
 		//assert(states[i] == i / 2 && typeof (states[i + 1]) == "function", "State " + i / 2
 		//		+ " did not initialize correctly.");
-		this.stateArray[states[i]] = new states[i + 1](host, this, states[i]);
+		if(states[i+1] instanceof SimpleState)
+			this.stateArray[states[i]] = states[i+1];
+		else
+			this.stateArray[states[i]] = new states[i + 1](host, this, states[i]);
 	}
 
 	this.currentState = fsmStates.kNoState;
@@ -168,7 +171,7 @@ AppFSM.prototype = new FSM();
 AppFSM.prototype.constructor = AppFSM;
 
 AppFSM.prototype.draw = function(render) {
-	for (var i = 0; i < this.suspendedArray.length; i++) {
+	for (var i = 0; i < this.numSuspended; i++) {
 		this.stateArray[this.suspendedArray[i]].draw(render);
 	}
 	var s = this.getCurrentState();
@@ -191,6 +194,7 @@ AppFSM.prototype.onTutorialTip = function(tip) {
  * The base of all states.
  */
 function BaseState(host, fsm, id) {
+	if(host == undefined) return;
 	this.host = host;
 	this.fsm = fsm;
 	this.stateId = id;
@@ -225,7 +229,7 @@ BaseState.prototype.suspend = function() {
 };
 
 BaseState.prototype.resume = function(msg, fromState) {
-	throw "Not specified in this state!";
+	//throw "Not specified in this state!";
 };
 
 BaseState.prototype.preload = function() {
@@ -239,6 +243,22 @@ BaseState.prototype.cancelPreload = function() {
 BaseState.prototype.transition = function() {
 	return false;
 };
+
+// ----------------------------------------------------------------------------
+
+function SimpleState(id, enterFN, leaveFN, updateFN) {
+	this.stateId = id;
+	var emptyFN = function() {
+	};
+	this.isSuspended = false;
+
+	this.enter = enterFN != null ? enterFN : emptyFN;
+	this.leave = leaveFN != null ? leaveFN : emptyFN;
+	this.update = updateFN != null ? updateFN : emptyFN;
+}
+
+SimpleState.prototype = new BaseState();
+SimpleState.prototype.constructor = SimpleState;
 
 // ----------------------------------------------------------------------------
 

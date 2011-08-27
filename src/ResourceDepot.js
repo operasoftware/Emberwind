@@ -6,12 +6,13 @@
 function ResourceDepot(path) {
 	if (!path) {
 		path = "resources/";
-		///emberwind.json";
 	}
+
+	this.language = this.detectLanguage();
+	ResourceLoader.getInstance().language = this.language;
 
 	this.path = path;
 	this.callback = null;
-	this.callbackThat = null;
 
 	this.animations = [];
 	this.imageSets = [];
@@ -24,6 +25,8 @@ function ResourceDepot(path) {
 	this.stages = null;
 
 	this.initialized = false;
+
+	this.dialogueLoaded = false;
 
 	/**
 	 * Loaded tiles from TileSets.
@@ -54,19 +57,50 @@ ResourceDepot.prototype = {};
 ResourceDepot.prototype.constructor = ResourceDepot;
 
 ResourceDepot.prototype.init = function () {
-	// Load game resources
-	loadJSON(this.path + "emberwind.json", this.read);
+	loadJSON(this.path + "emberwind.json", createCallback(this.readResources, this));
+
+	loadJSON(this.path + 'localized/' + this.language + '/stringtable.json', createCallback(this.callbackStringTable, this));
+	loadJSON(this.path + 'localized/' + this.language + '/dialogue.json', createCallback(this.callbackDialogue, this));
 };
 
-ResourceDepot.prototype.read = function(data) {
-	var this_ = ResourceDepot.getInstance(); // Todo: temp solution!
+ResourceDepot.prototype.detectLanguage = function() {
+	var lang = navigator.language ? navigator.language : navigator.userLanguage;
+	var ctr = lang.indexOf("-");
+	if (ctr != -1) lang = lang.substring(0, ctr - 1);
+
+	switch (lang) {
+		case "nl":
+			return "dutch";
+		case "fr":
+			return "french";
+		case "de":
+			return "german";
+		case "it":
+			return "italian";
+		case "jp":
+			return "japanese";
+		case "pl":
+			return "polish";
+		case "pt":
+			return "portuguese";
+		case "ru":
+			return "russian";
+		case "es":
+			return "spanish";
+		case "sv":
+			return "swedish";
+		default:
+			return "english";
+	}
+};
+
+ResourceDepot.prototype.readResources = function(data) {
 	var obj = JSON.parse(data, function(key, val) {
 		if (val && typeof val == 'object' && val.type) {
 			if (val.type == 'atlas') {
 				return new Atlas(val);
 			}
-		}
-		else if (key == 'tiles') {
+		} else if (key == 'tiles') {
 			// Revives tile to a list of ConvexShape objects
 			return val.map(function(tile) {
 				tile.shapes = tile.shapes.map(function(sh) {
@@ -75,12 +109,12 @@ ResourceDepot.prototype.read = function(data) {
 						// Shape is defined by triangulation
 						for (var pt = 0; pt < sh.triangulation.length; pt++) {
 							var tri = sh.triangulation;
-							shape.PushPoint(new Vec2(sh.data[tri[pt]*2], sh.data[tri[pt]*2+1]));
+							shape.PushPoint(new Vec2(sh.data[tri[pt] * 2], sh.data[tri[pt] * 2 + 1]));
 						}
 					}
 					else {
 						for (var pts = 0; pts < sh.data.length; pts += 2) {
-							shape.PushPoint(new Vec2(sh.data[pts], sh.data[pts+1]));
+							shape.PushPoint(new Vec2(sh.data[pts], sh.data[pts + 1]));
 						}
 					}
 					return shape;
@@ -89,73 +123,88 @@ ResourceDepot.prototype.read = function(data) {
 				return tile;
 			});
 		} else if (key == "layers") {
-		    // create trigger volumes
-		    return val.map(function(layer) { 
-		        if (layer.type == "trigger") {
-		            if (layer.children == null) {
-		                layer.triggers = [];
-		            } else {
-		                layer.triggers = layer.children.map(function(child) {
-		                    if (child.tag == "trigger") {
-		                        var rect = new Rectf(child.xmin, child.ymin, child.xmax, child.ymax);
-		                        var onenter = child.onenter == null ? "" : child.onenter;
-		                        var onexit = child.onexit == null ? "" : child.onexit;
-		                        return new TriggerVolume(child.name, rect, null, null, onenter, onexit);
-		                    } else {
-		                        assert(false, "unexpected resource tag");
-		                    }
-		                });
-		            }
-		            return layer;
-		        } else {
-		            assert(false, "unexpected resource type");
-		        }
-		    });
-		}else if(key == "objects"){
-			return val.map(function(obj){
-				if(obj.x === undefined) obj.x = 0;
-				if(obj.y === undefined) obj.y = 0;
-				if(obj.count === undefined) obj.count = 0;
-				if(obj.childCount === undefined) obj.childcount = 0;
-				if(obj.grade === undefined) obj.grade = 0;
-				if(obj.subhandles === undefined) obj.subhandles = [];
+			// create trigger volumes
+			return val.map(function(layer) {
+				if (layer.type == "trigger") {
+					if (layer.children == null) {
+						layer.triggers = [];
+					} else {
+						layer.triggers = layer.children.map(function(child) {
+							if (child.tag == "trigger") {
+								var rect = new Rectf(child.xmin, child.ymin, child.xmax, child.ymax);
+								var onenter = child.onenter == null ? "" : child.onenter;
+								var onexit = child.onexit == null ? "" : child.onexit;
+								return new TriggerVolume(child.name, rect, null, null, onenter, onexit);
+							} else {
+								assert(false, "unexpected resource tag");
+							}
+						});
+					}
+					return layer;
+				} else {
+					assert(false, "unexpected resource type");
+				}
+			});
+		} else if (key == "objects") {
+			return val.map(function(obj) {
+				if (obj.x === undefined) obj.x = 0;
+				if (obj.y === undefined) obj.y = 0;
+				if (obj.count === undefined) obj.count = 0;
+				if (obj.childcount === undefined) obj.childcount = 0;
+				if (obj.grade === undefined) obj.grade = 0;
+				if (obj.subhandles === undefined) obj.subhandles = [];
 				return obj;
 			});
 		}
-		
-
 		return val;
 	});
 
-	this_.atlases = obj.resources.atlases;
-	this_.tileSets = obj.resources.tilesets;
-	this_.imageSets = obj.resources.imagesets;
-	this_.animations = obj.resources.animations;
-	this_.stages = obj.game.stages;
-	this_.droptables = obj.droptables;
+	this.atlases = obj.resources.atlases;
+	this.tileSets = obj.resources.tilesets;
+	this.imageSets = obj.resources.imagesets;
+	this.animations = obj.resources.animations;
+	this.stages = obj.game.stages;
+	this.droptables = obj.droptables;
 
-	this_.sfx = obj.sfx;
-	this_.music = obj.music;
+	this.sfx = obj.sfx;
+	this.music = obj.music;
 
 	for (var i = 0; i < obj.resources.fonts.length; i++) {
 		var f = obj.resources.fonts[i];
-		this_.fonts[f.id] = new Font(f);
+		this.fonts[f.id] = new Font(f);
 	}
 
-	this_.initialized = true;
+	this.initialized = true;
+	this.callCallback();
+};
 
-	if (this_.callback !== null) {
-		this_.callback();
+ResourceDepot.prototype.callCallback = function() {
+	if (this.callback !== null && this.initialized && this.stringTable != null && this.dialogueLoaded) {
+		this.callback();
 	}
 };
-	
 
 ResourceDepot.prototype.setCallback = function(callback) {
 	this.callback = callback;
 };
 
-// Todo: add localized param.
-ResourceDepot.prototype.getImage = function(setName, imgName) {
+ResourceDepot.prototype.callbackStringTable = function(data) {
+	this.stringTable = JSON.parse(data);
+	this.callCallback();
+};
+
+ResourceDepot.prototype.callbackDialogue = function(data) {
+	app.game.dialogueSystem.read(JSON.parse(data));
+	this.dialogueLoaded = true;
+	this.callCallback();
+};
+
+ResourceDepot.prototype.getString = function(str) {
+	return this.stringTable[str];
+};
+
+ResourceDepot.prototype.getImage = function(setName, imgName, localized) {
+	localized = localized === undefined ? false : localized;
 	var set = this.loadedImages[setName];
 	if (set !== undefined) {
 		var image = set[imgName];
@@ -164,15 +213,16 @@ ResourceDepot.prototype.getImage = function(setName, imgName) {
 		}
 	}
 
-	var imageset = this.loadImageset(setName);
+	var imageset = this.loadImageset(setName, localized);
 	this.loadedImages[setName] = imageset;
 	return imageset[imgName];
 };
 
-ResourceDepot.prototype.loadImageset = function(setName) {
+ResourceDepot.prototype.loadImageset = function(setName, localized) {
+	localized = localized === undefined ? false : localized;
 	var is = null;
-	for ( var i in this.imageSets) {
-		if(this.imageSets.hasOwnProperty(i)){
+	for (var i in this.imageSets) {
+		if (this.imageSets.hasOwnProperty(i)) {
 			var isl = this.imageSets[i];
 			if (isl.name == setName) {
 				is = isl;
@@ -184,13 +234,15 @@ ResourceDepot.prototype.loadImageset = function(setName) {
 	var atlas = this.atlases[is.atlas];
 	var sources = atlas.sources[is.name];
 
+	var filename = atlas.filename;
+	if (localized) filename = filename.replace(/english/, this.language);
+
 	var set = {};
-	for ( var f in is.frames) {
-		if(is.frames.hasOwnProperty(f)){
+	for (var f in is.frames) {
+		if (is.frames.hasOwnProperty(f)) {
 			var name = is.frames[f];
 			var source = sources[f];
-			var image = this.getEMBImage(source, atlas.filename);
-			set[name] = image;			
+			set[name] = this.getEMBImage(source, filename);
 		}
 	}
 
@@ -212,8 +264,8 @@ ResourceDepot.prototype.getEMBImage = function(source, filename) {
 };
 
 ResourceDepot.prototype.getTileIndex = function(name) {
-	for ( var k in this.loadedTiles) {
-		if(this.loadedTiles.hasOwnProperty(k)){			
+	for (var k in this.loadedTiles) {
+		if (this.loadedTiles.hasOwnProperty(k)) {
 			var t = this.loadedTiles[k];
 			if (t.name == name) {
 				return t.tile;
@@ -225,6 +277,7 @@ ResourceDepot.prototype.getTileIndex = function(name) {
 };
 
 ResourceDepot.prototype.getTile = function(index) {
+	if (index == -1) return null;
 	var t = this.loadedTiles[index];
 	if (t !== undefined) return t;
 
@@ -235,8 +288,8 @@ ResourceDepot.prototype.getTile = function(index) {
 
 ResourceDepot.prototype.loadTile = function(index) {
 	var ts = null;
-	for ( var i in this.tileSets) {
-		if(this.tileSets.hasOwnProperty(i)){			
+	for (var i in this.tileSets) {
+		if (this.tileSets.hasOwnProperty(i)) {
 			var tsl = this.tileSets[i];
 			if (tsl.startid <= index && index < tsl.startid + tsl.numTiles) {
 				ts = tsl;
@@ -261,7 +314,23 @@ ResourceDepot.prototype.loadTile = function(index) {
 	var image = ResourceLoader.getInstance().loadImage(atlas.filename);
 
 	return new Tile(new EMBImage(image, source[0], source[1], width, height, xOffset, yOffset, textureWidth,
-			textureHeight), t.shapes);
+			textureHeight), t.shapes, index - ts.startid, t.name);
+};
+
+
+ResourceDepot.prototype.getTileIndex = function(name) {
+	for (var i in this.tileSets) {
+		if (this.tileSets.hasOwnProperty(i)) {
+			var tsl = this.tileSets[i];
+			for (var t = 0; t < tsl.tiles.length; t++) {
+				var tile = tsl.tiles[t];
+				if (tile.name == name) {
+					return i * 100 + t;
+				}
+			}
+		}
+	}
+	return -1;
 };
 
 ResourceDepot.prototype.getAnimation = function(index, callback, mirrored) {
@@ -271,7 +340,9 @@ ResourceDepot.prototype.getAnimation = function(index, callback, mirrored) {
 		this.loadedAnimations[index] = a;
 	}
 
-	if (a === null) { return null; }
+	if (a === null) {
+		return null;
+	}
 
 	return new AnimationHandle(a, callback, mirrored);
 };
@@ -281,7 +352,7 @@ ResourceDepot.prototype.loadAnimation = function(index) {
 	if (typeof index == "number") {
 		anim = this.animations[index];
 	} else {
-		for ( var i = 0; i < this.animations.length; i++) {
+		for (var i = 0; i < this.animations.length; i++) {
 			var at = this.animations[i];
 			if (at.name == index) {
 				anim = at;
@@ -290,7 +361,9 @@ ResourceDepot.prototype.loadAnimation = function(index) {
 		}
 	}
 
-	if (anim === null) { return null; } 
+	if (anim === null) {
+		return null;
+	}
 
 	var atlas = this.atlases[anim.atlas];
 	var sources = atlas.sources[anim.name];
@@ -298,7 +371,7 @@ ResourceDepot.prototype.loadAnimation = function(index) {
 	var image = ResourceLoader.getInstance().loadImage(atlas.filename);
 
 	var frames = [];
-	for ( var j = 0; j < sources.length; j++) {
+	for (var j = 0; j < sources.length; j++) {
 		var source = sources[j];
 
 		var width = source[2] - source[0] + 1;
@@ -338,7 +411,7 @@ ResourceDepot.prototype.getDropTable = function(id) {
 ResourceDepot.prototype.getDropType = function(id) {
 	var t;
 	if (t = this.droptables[id]) {
-		var r = Math.floor(randomRange(0, t.totalRate+1));
+		var r = Math.floor(randomRange(0, t.totalRate + 1));
 		for (var loot in t.loot) {
 			if (Object.prototype.hasOwnProperty.call(t.loot, loot)) {
 				r -= t.loot[loot];
@@ -355,7 +428,7 @@ ResourceDepot.prototype.getDropCount = function(id) {
 	var drops = 0;
 	var t;
 	if (t = this.droptables[id]) {
-		var rolls = Math.floor(randomRange(t.min, t.max+1));
+		var rolls = Math.floor(randomRange(t.min, t.max + 1));
 		for (var i = 0; i < rolls; i++) {
 			if (Math.floor(randomRange(0, t.noDropRate + t.totalRate + 1)) >= t.noDropRate) {
 				drops++;
@@ -368,10 +441,10 @@ ResourceDepot.prototype.getDropCount = function(id) {
 
 /**
  * Loads a JSON file and sends the text back thrugh callback.
- * 
+ *
  * @param file the file to get.
  * @param callback the callback that should be called when the file have been
- *            successfully downloaded.
+ *			successfully downloaded.
  */
 function loadJSON(file, callback) {
 	var request = new XMLHttpRequest();

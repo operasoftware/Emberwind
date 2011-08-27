@@ -24,14 +24,21 @@ Atlas.prototype.constructor = Atlas;
  * Tile container
  *
  * @param {EMBImage} image Tile image
- * @param {cpoly} poly Tile polygon
+ * @param {CPoly} poly Tile polygon
+ * @param {Number} index Tile index
+ * @param {String} [name] Tile name
  */
-function Tile(image, shapes) {
+function Tile(image, shapes, index, name) {
+	name = name == undefined ? null : name;
 	this.image = image;
 	this.shapes = shapes;
+	this.index = index;
+	this.name = name;
 }
 
 function ResourceLoader() {
+	this.language = null;
+
 	/**
 	 * Loaded images.
 	 */
@@ -85,6 +92,10 @@ ResourceLoader.prototype.preloadImages = function(filenames, callback) {
 		callCallback(imagesLoaded / length);
 	};
 
+	var imageError = function() {
+		alert("An image could not be loaded! Please reload the page to try again.");
+	};
+
 	for (var i = 0; i < length; i++) {
 		var filename = filenames[i];
 		var image = this.loadedImages[filename];
@@ -95,7 +106,8 @@ ResourceLoader.prototype.preloadImages = function(filenames, callback) {
 
 		image = new Image();
 		image.onload = imageLoaded;
-		image.src = this.imagePath + filename;
+		image.onerror = imageError;
+		image.src = this.imagePath + filename.replace(/english/, this.language);
 		this.loadedImages[filename] = image;
 	}
 
@@ -135,10 +147,10 @@ Font.prototype.generateCanvas = function(text, wrapWidth) {
 
 	if (wrapWidth != undefined) {
 		text = this.wrapText(c, text, wrapWidth);
-		canvas.width = c.measureText(text).width + 10 + outline * 4; // Margin
-		canvas.height = (this.size + outline * 4) * (text.split("\n").length + 1);
+		canvas.width = c.measureText(text).width + 8 + outline * 2; // Margin
+		canvas.height = (this.size + outline * 4) * text.split("\n").length;
 	} else {
-		canvas.width = c.measureText(text).width + 10 + outline * 4; // Margin
+		canvas.width = c.measureText(text).width + 8 + outline * 2; // Margin
 		canvas.height = this.size + outline * 4;
 	}
 
@@ -152,6 +164,7 @@ Font.prototype.generateCanvas = function(text, wrapWidth) {
 		c.lineWidth = outline;
 		c.strokeText(text, outline, this.size / 2 + outline * 2);
 	}
+
 	c.fillText(text, outline, this.size / 2 + outline * 2);
 
 	return canvas;
@@ -164,6 +177,8 @@ Font.prototype.wrapText = function(c, text, width) {
 	while (i < parts.length) {
 		if (c.measureText(result + parts[i]).width >= width) {
 			result += "\n" + parts[i];
+		} else if (i != 0) {
+			result += " " + parts[i];
 		} else {
 			result += parts[i];
 		}

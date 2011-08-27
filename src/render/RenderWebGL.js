@@ -1,6 +1,6 @@
 /**
  * RenderWebGL.js
- * 
+ *
  * Depends on Common.js, Render.js, glMatrix.js, webgl-utils.js
  */
 
@@ -9,7 +9,7 @@ RenderWebGL.prototype.constructor = RenderWebGL;
 
 /**
  * creates WebGL render and defines its fields
- * 
+ *
  * @returns {RenderWebGL}
  */
 function RenderWebGL() {
@@ -19,11 +19,11 @@ function RenderWebGL() {
     // shader state
     this.currentClearColor = null;
     this.currentAlphaAdditive = null;
-    
+
     // textures cache
     this.textures = null;
     this.temporaryTextures = null;
-    
+
     // array buffers (both dynamic and static)
     this.arrays = null;
     this.lineVerticesArray = new Float32Array(2 * 2);
@@ -38,22 +38,22 @@ function RenderWebGL() {
     this.tileCoordinatesArray = new Float32Array(2 * 6);
     this.filledTrisArray = new Float32Array(2 * 6);
     this.filledRectColorsArray = new Float32Array(4 * 4);
-    
+
     // WebGL buffers
     this.verticesBuffer = null;
     this.coordinatesBuffer = null;
     this.colorsBuffer = null;
-    
+
     // image cache
     this.imageCache = null;
-    
+
     // render layers
     this.layers = null;
     this.isDrawFullLayer = false;
-    
+
     // model-view matrix
     this.modelView = null;
-    
+
     // shaders
     this.currentShader = null;
     this.noTextureShader = null;
@@ -64,7 +64,7 @@ function RenderWebGL() {
     this.alphaPaddingShader = null;
     this.tintPaddingShader = null;
     this.layerShader = null;
-    
+
     // system canvas
     this.systemCanvas = null;
     this.systemContext = null;
@@ -72,7 +72,7 @@ function RenderWebGL() {
 
 /**
  * creates WebGL and resets state
- * 
+ *
  * @param canvas is an HTMLCanvasElement
  */
 RenderWebGL.prototype.initGL = function(canvas) {
@@ -99,7 +99,7 @@ RenderWebGL.prototype.initGL = function(canvas) {
 
 /**
  * compiles a shader code
- * 
+ *
  * @param isVertex distinguishes between vertex and fragment shaders
  * @param code is shader code
  * @returns created shader
@@ -116,7 +116,7 @@ RenderWebGL.prototype.createShader = function(isVertex, code) {
     this.gl.compileShader(shader);
 
     if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-        throw new RenderException("WebGL: failed to compiler shader = " + 
+        throw new RenderException("WebGL: failed to compiler shader = " +
                                     this.gl.getShaderInfoLog(shader));
     }
     return shader;
@@ -124,7 +124,7 @@ RenderWebGL.prototype.createShader = function(isVertex, code) {
 
 /**
  * compiles shader programs and binds their attributes and uniforms
- * 
+ *
  * @param vertex is a shader
  * @param fragment is a shader
  * @param attributes is list of shader attribute names
@@ -145,7 +145,7 @@ RenderWebGL.prototype.initShader = function(vertex, fragment, attributes, unifor
     }
 
     this.gl.useProgram(shaderProgram);
-    
+
     // set attributes
     var i;
     shaderProgram.vertexAttributes = [];
@@ -154,13 +154,13 @@ RenderWebGL.prototype.initShader = function(vertex, fragment, attributes, unifor
         shaderProgram[attribute] = this.gl.getAttribLocation(shaderProgram, attributes[i]);
         shaderProgram.vertexAttributes.push(attribute);
     }
-    
+
     // set uniforms
     for (i = 0; i < uniforms.length; i++) {
         var uniform = uniforms[i] + "Uniform";
         shaderProgram[uniform] = this.gl.getUniformLocation(shaderProgram, uniforms[i]);
     }
-    
+
     return shaderProgram;
 };
 
@@ -178,7 +178,7 @@ RenderWebGL.prototype.initBuffers = function() {
 
 /**
  * initializes the render, the black screen is drawn
- * 
+ *
  * @param canvas is an HTML canvas element
  * @param vertex is a list of vertex shader programs (strings)
  * @param fragment is a list of fragment shader programs (strings)
@@ -189,23 +189,23 @@ RenderWebGL.prototype.initialize = function(canvas, vertex, fragment) {
     this.initGL(canvas);
     this.noTextureShader = this.initShader(vertex[0], fragment[0], ["aPosition"], ["uMVMatrix", "uColor", "uPremultiplied"]);
     this.gradientShader = this.initShader(vertex[1], fragment[1], ["aPosition", "aColor"], ["uMVMatrix", "uPremultiplied"]);
-    this.alphaShader = 
-        this.initShader(vertex[2], fragment[2], 
+    this.alphaShader =
+        this.initShader(vertex[2], fragment[2],
                 ["aPosition", "aTextureCoordinates"], ["uMVMatrix", "uColor", "uTexture", "uPremultiplied"]);
-    this.tintShader = 
-        this.initShader(vertex[3], fragment[3], 
+    this.tintShader =
+        this.initShader(vertex[3], fragment[3],
                 ["aPosition", "aTextureCoordinates"], ["uMVMatrix", "uColor", "uTexture", "uPremultiplied"]);
     this.cachingShader =
-      this.initShader(vertex[4], fragment[4], 
+      this.initShader(vertex[4], fragment[4],
               ["aPosition", "aTextureCoordinates"], ["uMVMatrix", "uTexture"]);
-    this.alphaPaddingShader = 
-        this.initShader(vertex[5], fragment[5], 
+    this.alphaPaddingShader =
+        this.initShader(vertex[5], fragment[5],
                 ["aPosition", "aTextureCoordinates"], ["uMVMatrix", "uColor", "uTexture", "uClip", "uPremultiplied"]);
-    this.tintPaddingShader = 
-        this.initShader(vertex[6], fragment[6], 
+    this.tintPaddingShader =
+        this.initShader(vertex[6], fragment[6],
                 ["aPosition", "aTextureCoordinates"], ["uMVMatrix", "uColor", "uTexture", "uClip", "uPremultiplied"]);
-    this.layerShader = 
-        this.initShader(vertex[7], fragment[7], 
+    this.layerShader =
+        this.initShader(vertex[7], fragment[7],
                 ["aPosition", "aTextureCoordinates"], ["uMVMatrix", "uTexture", "uOffset"]);
     // initialize buffers and create image cache
     this.initBuffers();
@@ -220,7 +220,7 @@ RenderWebGL.prototype.initialize = function(canvas, vertex, fragment) {
 
 /**
  * switch to another shader (keeps in minds redundant switches)
- * 
+ *
  * @param shader is program to switch to
  * @param additive is blending mode, defaults to false
  */
@@ -270,7 +270,7 @@ RenderWebGL.prototype.activateShader = function(shader, additive) {
 
 /**
  * binds a texture
- * 
+ *
  * @param shader is a WebGLProgram
  * @param texture is a WebGLTexture
  */
@@ -282,7 +282,7 @@ RenderWebGL.prototype.bindTexture = function(shader, texture) {
 
 /**
  * binds attribute to shader for drawing
- * 
+ *
  * @param attribute is a WebGL shader attribute object
  * @param buffer is WebGL buffer
  * @param array is a Float32Array filled with data, optional
@@ -298,7 +298,7 @@ RenderWebGL.prototype.bindAttribute = function(attribute, buffer, array, isStati
 
 /**
  * gives number of vertices in an array
- * 
+ *
  * @param array is a Float32Array
  * @returns number
  */
@@ -308,7 +308,7 @@ RenderWebGL.prototype.vertexCount = function (array) {
 
 /**
  * sets color uniform value
- * 
+ *
  * @param shader is an OpenGL shader program
  * @param color is a Pixel32 instance
  */
@@ -319,7 +319,7 @@ RenderWebGL.prototype.setColor = function(shader, color) {
 
 /**
  * resolves a texture from texture cache or unpacks a new one
- * 
+ *
  * @param image is a HTMLImageElement or HTMLCanvasElement instance
  * @returns texture
  */
@@ -351,7 +351,7 @@ RenderWebGL.prototype.resolveTexture = function(image) {
 
 /**
  * creates or fetches from cache the RenderWebGLTileLayer which corresponds to RenderLayer
- * 
+ *
  * @param layer is a RenderLayer
  */
 RenderWebGL.prototype.resolveLayer = function(layer) {
@@ -359,7 +359,7 @@ RenderWebGL.prototype.resolveLayer = function(layer) {
     var i, found = null;
     for (i = 0; i < this.layers.length && (found == null); i++) {
         if (this.layers[i].layer == layer) {
-            found = this.layers[i]; 
+            found = this.layers[i];
         }
     }
     // create a new layer if necessary
@@ -419,7 +419,7 @@ RenderWebGL.prototype.flush = function() {
 
 /**
  * clears the drawing area
- * 
+ *
  * @param color is an optional Pixel32 instance, default color is transparent
  */
 RenderWebGL.prototype.clear = function(color) {
@@ -444,7 +444,7 @@ RenderWebGL.prototype.reset = function(w, h) {
     // initialize model-view matrix and clear drawing area
     mat4.ortho(0, w, h, 0, -1, 1, this.modelView);
     // clear view port
-    this.gl.viewport(0, 0, w, h);    
+    this.gl.viewport(0, 0, w, h);
     this.clear();
 };
 
@@ -457,8 +457,8 @@ RenderWebGL.prototype.reset = function(w, h) {
  */
 
 /**
- * draws a line 
- * 
+ * draws a line
+ *
  * @param x0 is integer, >= 0
  * @param y0 is integer, >= 0
  * @param x1 is integer, >= 0
@@ -473,19 +473,19 @@ RenderWebGL.prototype.drawLine = function(x0, y0, x1, y1, color) {
     this.lineVerticesArray[2] = x1;
     this.lineVerticesArray[3] = y1;
     this.scale(this.lineVerticesArray);
-    
+
     // draw the rectangle
     this.activateShader(this.noTextureShader);
-    
+
     this.setColor(this.noTextureShader, color);
     this.bindAttribute(this.noTextureShader.aPositionAttribute, this.verticesBuffer, this.lineVerticesArray);
-    
+
     this.gl.drawArrays(this.gl.LINE_STRIP, 0, this.vertexCount(this.lineVerticesArray));
 };
 
 /**
  * draws a circle
- * 
+ *
  * @param xCenter is integer, >= 0
  * @param yCenter is integer, >= 0
  * @param radius is integer, >= 0
@@ -507,13 +507,13 @@ RenderWebGL.prototype.drawCircle = function(xCenter, yCenter, radius, color) {
                 vertices[i++] = y;
             }
             this.scale(vertices);
-            
+
             // draw the circle
             this.activateShader(this.noTextureShader);
-            
+
             this.setColor(this.noTextureShader, color);
             this.bindAttribute(this.noTextureShader.aPositionAttribute, this.verticesBuffer, vertices);
-            
+
             this.gl.drawArrays(this.gl.LINE_LOOP, 0, this.vertexCount(vertices));
         }
     }
@@ -521,7 +521,7 @@ RenderWebGL.prototype.drawCircle = function(xCenter, yCenter, radius, color) {
 
 /**
  * draws a rectangle
- * 
+ *
  * @param x0 is integer, >= 0
  * @param y0 is integer, >= 0
  * @param x1 is integer, >= 0
@@ -535,10 +535,10 @@ RenderWebGL.prototype.drawRect = function(x0, y0, x1, y1, color) {
     this.rectVerticesArray[4] = x1; this.rectVerticesArray[5] = y1;
     this.rectVerticesArray[6] = x0; this.rectVerticesArray[7] = y1;
     this.scale(this.rectVerticesArray);
-    
+
     // draw the rectangle
     this.activateShader(this.noTextureShader);
-    
+
     this.setColor(this.noTextureShader, color);
     this.bindAttribute(this.noTextureShader.aPositionAttribute, this.verticesBuffer, this.rectVerticesArray);
 
@@ -547,7 +547,7 @@ RenderWebGL.prototype.drawRect = function(x0, y0, x1, y1, color) {
 
 /**
  * Draws a filled rectangle. If 2 colors are specified then it will make a gradient from the top to the bottom.
- * 
+ *
  * @param x0 is the x coordinate for the upper left corner
  * @param y0 is the y coordinate for the upper left corner
  * @param x1 is the x coordinate for the lower right corner
@@ -564,7 +564,7 @@ RenderWebGL.prototype.drawFilledRect = function(x0, y0, x1, y1, colorA, colorB) 
     this.rectVerticesArray[4] = x0; this.rectVerticesArray[5] = y1;
     this.rectVerticesArray[6] = x1; this.rectVerticesArray[7] = y1;
     this.scale(this.rectVerticesArray);
-    
+
     // minimize shader switches
     if (colorB === undefined) {
         this.activateShader(this.noTextureShader);
@@ -576,19 +576,19 @@ RenderWebGL.prototype.drawFilledRect = function(x0, y0, x1, y1, colorA, colorB) 
         this.filledRectColorsArray.set(colorA.normalized, 4);
         this.filledRectColorsArray.set(colorB.normalized, 8);
         this.filledRectColorsArray.set(colorB.normalized, 12);
-        
+
         this.activateShader(this.gradientShader);
         this.bindAttribute(this.gradientShader.aPositionAttribute, this.verticesBuffer, this.rectVerticesArray);
         this.bindAttribute(this.gradientShader.aColorAttribute, this.colorsBuffer, this.filledRectColorsArray);
     }
-    
+
     // draw filled rectangle
     this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, this.vertexCount(this.rectVerticesArray));
 };
 
 /**
  * draws a quadruple
- * 
+ *
  * @param vertices is array of four (x,y) coordinates
  * @param color is a Pixel32 instance
  */
@@ -597,10 +597,10 @@ RenderWebGL.prototype.drawQuad = function(vertices, color) {
     // define lines
     this.rectVerticesArray.set(vertices);
     this.scale(this.rectVerticesArray);
-    
+
     // draw the rectangle
     this.activateShader(this.noTextureShader);
-    
+
     this.setColor(this.noTextureShader, color);
     this.bindAttribute(this.noTextureShader.aPositionAttribute, this.verticesBuffer, this.rectVerticesArray);
 
@@ -609,16 +609,16 @@ RenderWebGL.prototype.drawQuad = function(vertices, color) {
 
 /**
  * draws n triangle shapes
- * 
+ *
  * @param vertices is array of 3*n (x,y) coordinates
  * @param color is a Pixel32 instance
  */
 RenderWebGL.prototype.drawTris = function(vertices, color) {
     assert(vertices.length % 6 == 0, "invalid number of vertices - they do not define a series of triangles");
-    
+
     // draw a bunch of triangles
     this.activateShader(this.noTextureShader);
-    
+
     var i, j;
     for (i = 0; i < vertices.length; i += 6) {
         // copy single triangle
@@ -626,17 +626,17 @@ RenderWebGL.prototype.drawTris = function(vertices, color) {
             this.trisVerticesArray[j] = vertices[i + j];
         }
         this.scale(this.trisVerticesArray);
-        
+
         this.setColor(this.noTextureShader, color);
         this.bindAttribute(this.noTextureShader.aPositionAttribute, this.verticesBuffer, this.trisVerticesArray);
-        
+
         this.gl.drawArrays(this.gl.LINE_LOOP, 0, this.vertexCount(this.trisVerticesArray));
     }
 };
 
 /**
  * draws n filled triangles
- * 
+ *
  * @param vertices is array of 3*n (x,y) coordinates
  * @param color is a Pixel32 instance
  */
@@ -645,13 +645,13 @@ RenderWebGL.prototype.drawFilledTris = function(vertices, color) {
     // scale vertices
     var vertices = this.array("trisVerticesArray", vertices);
     this.scale(vertices);
-    
+
     // draw a bunch of triangles
     this.activateShader(this.noTextureShader);
-    
+
     this.setColor(this.noTextureShader, color);
     this.bindAttribute(this.noTextureShader.aPositionAttribute, this.verticesBuffer, vertices);
-    
+
     this.gl.drawArrays(this.gl.TRIANGLES, 0, this.vertexCount(vertices));
 };
 
@@ -661,7 +661,7 @@ RenderWebGL.prototype.drawFilledTris = function(vertices, color) {
 
 /**
  * draws an image
- * 
+ *
  * @param img is an EMBImage instance
  * @param x is coordinate, 0..width
  * @param y is coordinate, 0..height
@@ -688,12 +688,12 @@ RenderWebGL.prototype.drawImage = function(img, x, y, angle, centered, alpha, ti
         shader = this.alphaShader;
         isCacheable = this.isCacheable(img);
     }
-    
+
     // vertices coordinates
     this.move(this.imageVerticesArray, img, x, y, centered, flipped);
-	if (angle != null && angle != 0) this.rotate(this.imageVerticesArray, img, angle);
+	if (angle != null && angle != 0) this.rotate(this.imageVerticesArray, img, angle, flipped);
     this.scale(this.imageVerticesArray);
-    
+
     if (this.isVisible(this.imageVerticesArray, angle)) {
         // texture coordinates
         var u0 = this.textureX(img, 0), v0 = this.textureY(img, 0);
@@ -721,7 +721,7 @@ RenderWebGL.prototype.drawImage = function(img, x, y, angle, centered, alpha, ti
 
 /**
  * draws image on a polygon
- * 
+ *
  * @param img is an EMBImage instance
  * @param xy is a polygon of pixel coordinates (2x3)
  * @param uv is a polygon of in-picture coordinates (0.0..1.0) (2x3)
@@ -740,11 +740,11 @@ RenderWebGL.prototype.drawTriangleImage = function(img, xy, uv, tint) {
         color = tint;
         shader = this.tintPaddingShader;
     }
-    
+
     // vertices
     this.polyVerticesArray.set(xy);
     this.scale(this.polyVerticesArray);
-    
+
     // texture coordinates [u0, v0, u1, v0, u0, v1]
     for (var i = 0; i < uv.length; i++) {
         if (i % 2 == 0) {
@@ -753,29 +753,29 @@ RenderWebGL.prototype.drawTriangleImage = function(img, xy, uv, tint) {
             this.polyCoordinatesArray[i] = this.textureY(img, uv[i], true);
         }
     }
-    
+
     // texture clip
     this.clipArray[0] = this.textureX(img, 0, false);
     this.clipArray[1] = this.textureY(img, 0, false);
     this.clipArray[2] = this.textureX(img, img.width, false);
     this.clipArray[3] = this.textureY(img, img.height, false);
-    
+
     // draw the image
     this.activateShader(shader);
-    
+
     this.setColor(shader, color);
     var texture = this.resolveTexture(img.image);
     this.bindTexture(shader, texture);
     this.gl.uniform4fv(shader.uClipUniform, this.clipArray);
     this.bindAttribute(shader.aPositionAttribute, this.verticesBuffer, this.polyVerticesArray);
     this.bindAttribute(shader.aTextureCoordinatesAttribute, this.coordinatesBuffer, this.polyCoordinatesArray);
-    
+
     this.gl.drawArrays(this.gl.TRIANGLES, 0, this.vertexCount(this.polyVerticesArray));
 };
 
 /**
  * draws a particle
- * 
+ *
  * @param img is an EMBImage instance
  * @param x is coordinate, 0..width
  * @param y is coordinate, 0..height
@@ -790,18 +790,18 @@ RenderWebGL.prototype.drawParticle = function(img, x, y, angle, scaleX, scaleY, 
     assert(img != null && angle != null && scaleX >= 0.0 && scaleY >= 0.0);
     assert(alpha != null && additive != null);
 	if(this.calls++ > this.maxCalls) return;
-    
+
     // apply alpha
     color = color == null ? this.white : color;
     color = new Pixel32(color.r, color.g, color.b, alpha * 255);
     var shader = this.alphaShader;
     var isCacheable = this.white.equals(color) && this.isCacheable(img);
-    
+
     // vertices coordinates
     this.move(this.imageVerticesArray, img, x, y, true, false, scaleX, scaleY);
-    if (angle != 0) this.rotate(this.imageVerticesArray, img, angle);
+    if (angle != 0) this.rotate(this.imageVerticesArray, img, angle, false);
     this.scale(this.imageVerticesArray);
-    
+
     if (this.isVisible(this.imageVerticesArray, angle)) {
         // texture coordinates
         var u0 = this.textureX(img, 0), v0 = this.textureY(img, 0);
@@ -829,7 +829,7 @@ RenderWebGL.prototype.drawParticle = function(img, x, y, angle, scaleX, scaleY, 
 
 /**
  * draws a series of images
- * 
+ *
  * @param img is an EMBImage instance
  * @param x is coordinate, 0..width
  * @param y is coordinate, 0..height
@@ -839,7 +839,7 @@ RenderWebGL.prototype.drawParticle = function(img, x, y, angle, scaleX, scaleY, 
  */
 RenderWebGL.prototype.drawTilingImage = function(img, x, y, htiles, vtiles, alpha) {
     assert(htiles > 0 && vtiles > 0, "invalid number of tiles: htiles = " + htiles + ", vtiles = " +vtiles);
-    
+
     // alpha and tint
     var color;
     var shader = this.alphaShader;
@@ -848,14 +848,14 @@ RenderWebGL.prototype.drawTilingImage = function(img, x, y, htiles, vtiles, alph
     } else {
         color = this.white;
     }
-    
+
     // vertices coordinates
-    this.move(this.tileVerticesArray, img, x, y, false, false);
-    
+    this.move(this.tileVerticesArray, img, x, y, true, false, 1, 1, 0);
+
     // texture coordinates
     var u0 = this.textureX(img, 0), v0 = this.textureY(img, 0);
     var u1 = this.textureX(img, img.width), v1 = this.textureY(img, img.height);
-    this.expand(this.tileCoordinatesArray, u0, v0, u1, v1);
+    this.expand(this.tileCoordinatesArray, u0, v0, u1, v1, false, 0);
 
     // tile the coordinates
     var size = htiles * vtiles * 6 * 2;
@@ -869,7 +869,7 @@ RenderWebGL.prototype.drawTilingImage = function(img, x, y, htiles, vtiles, alph
         }
     }
     this.scale(verticesArray);
-    
+
     // draw the image
     this.activateShader(shader);
 
@@ -878,13 +878,13 @@ RenderWebGL.prototype.drawTilingImage = function(img, x, y, htiles, vtiles, alph
     this.bindTexture(shader, texture);
     this.bindAttribute(shader.aPositionAttribute, this.verticesBuffer, verticesArray);
     this.bindAttribute(shader.aTextureCoordinatesAttribute, this.coordinatesBuffer, coordinatesArray);
-    
+
     this.gl.drawArrays(this.gl.TRIANGLES, 0, this.vertexCount(verticesArray));
 };
 
 /**
  * draws a layer
- * 
+ *
  * @param layer is a RenderLayer instance
  * @param ox is an offset in pixels
  * @param oy is an offset in pixels
@@ -913,7 +913,7 @@ RenderWebGL.prototype.drawLayer = function(layer, ox, oy, x, y, nx, ny) {
 
 /**
  * Draws a text image on the screen.
- * 
+ *
  * @param image is a HTMLCanvasElement
  * @param x is coordinate, 0..width
  * @param y is coordinate, 0..height
@@ -936,7 +936,7 @@ RenderWebGL.prototype.drawCanvas = function(canvas, x, y) {
 
 /**
  * Draws debug text on the canvas.
- * 
+ *
  * @param txt the text.
  * @param x the x position of the upper left corner.
  * @param y the y position of the upper left corner.
@@ -957,7 +957,7 @@ RenderWebGL.prototype.drawSystemText = function(txt, x, y, color) {
 
 /**
  * Draws a color on the entire screen.
- * @param {Pixel32} color the color to draw. 
+ * @param {Pixel32} color the color to draw.
  */
 RenderWebGL.prototype.drawFillScreen = function(color) {
 	if(this.calls++ > this.maxCalls) return;
@@ -977,7 +977,7 @@ RenderWebGL.prototype.drawFillScreen = function(color) {
 
 /**
  * pushes a clip rectangle into the stack and sets new scissor test
- * 
+ *
  * @param r is instance of Rectf
  */
 RenderWebGL.prototype.pushClipRect = function(r) {
@@ -988,8 +988,8 @@ RenderWebGL.prototype.pushClipRect = function(r) {
 /**
  * pops top-most Rectf (must exist) and if there are any other rectangles,
  * scissor test is updated, otherwise switched off
- * 
- * @returns popped Rectf 
+ *
+ * @returns popped Rectf
  */
 RenderWebGL.prototype.popClipRect = function() {
     var result = Render.prototype.popClipRect.call(this);
@@ -1019,7 +1019,7 @@ RenderWebGL.prototype.updateScissor = function() {
 
 /**
  * fills a rectangle coordinates out of two points
- * 
+ *
  * @param buffer is an array of 8 coordinates
  * @param x0 is a pixel coordinate
  * @param y0 is a pixel coordinate
@@ -1055,7 +1055,7 @@ RenderWebGL.prototype.expand = function(buffer, x0, y0, x1, y1, flipped, offset)
 /**
  * converts coordinates of image and its position into a rectangle coordinates,
  * applying parameters.
- * 
+ *
  * @param buffer is an array that will contain rectangle coordinates
  * @param img is an EMBImage instance
  * @param x is coordinate, 0..width
@@ -1083,16 +1083,16 @@ RenderWebGL.prototype.move = function(buffer, img, x, y, centered, flipped, scal
 
 /**
  * rotates (0, 0, w, h) rectangle relative to its center and adds up new coordinates to matrix
- * 
+ *
  * @param matrix is an array of that defines a rectangle: [x0, y0, x1, y0, x0, y1, x1, y1]
  * @param {EMBImage} img the image.
  * @param angle is in radians
  */
-RenderWebGL.prototype.rotate = function(matrix, img, angle) {
+RenderWebGL.prototype.rotate = function(matrix, img, angle, flipped) {
 	var sina = Math.sin(angle);
 	var cosa = Math.cos(angle);
 
-	var xCenter = matrix[0] - img.xOffset + img.textureWidth / 2;
+	var xCenter = matrix[0] - (flipped ? img.textureWidth - (img.xOffset + img.width) : img.xOffset) + img.textureWidth / 2;
 	var yCenter = matrix[1] - img.yOffset + img.textureHeight / 2;
 
 	var dx, dy, i;
@@ -1106,7 +1106,7 @@ RenderWebGL.prototype.rotate = function(matrix, img, angle) {
 
 /**
  * scales vertices using scale factor and additional scaling along x and y axes
- * 
+ *
  * @param vertices is an array that holds (a,b) pairs
  */
 RenderWebGL.prototype.scale = function(vertices) {
@@ -1125,7 +1125,7 @@ RenderWebGL.prototype.scale = function(vertices) {
 
 /**
  * checks whether a rectangle is culled away and there is no need to draw it
- * 
+ *
  * @param array is an array that holds (a,b) pairs and discribes a rectangle
  * @param angle is optional rotation angle
  */
@@ -1133,8 +1133,8 @@ RenderWebGL.prototype.isVisible = function(array, angle) {
     // x1 < sx0 || x0 > sx1 || y1 < sy0 || y0 > sy1 => culled away
     if (angle == null || angle == 0.0) {
         var sx1 = this.getWidth(), sy1 = this.getHeight();
-        return !(array[2] < 0 || array[0] > sx1 || array[5] < 0 || array[1] > sy1); 
-    } else { 
+        return !(array[2] < 0 || array[0] > sx1 || array[5] < 0 || array[1] > sy1);
+    } else {
         // we do not perform testing for rotated rectangles
         return true;
     }
@@ -1142,10 +1142,10 @@ RenderWebGL.prototype.isVisible = function(array, angle) {
 
 
 /**
- * converts in-texture coordinte to in-image coordinate  
- * 
+ * converts in-texture coordinte to in-image coordinate
+ *
  * @param img is an EMBImage instance
- * @param tx is in pixels, 
+ * @param tx is in pixels,
  * @param padding is boolean, when turned on, white space is assumed to be around image
  * @returns float
  */
@@ -1161,8 +1161,8 @@ RenderWebGL.prototype.textureX = function(img, tx, padding) {
 };
 
 /**
- * converts in-texture coordinte to in-image coordinate  
- * 
+ * converts in-texture coordinte to in-image coordinate
+ *
  * @param img is an EMBImage instance
  * @param ty is in pixels
  * @param padding is boolean, when turned on, white space is assumed to be around image
@@ -1181,7 +1181,7 @@ RenderWebGL.prototype.textureY = function(img, ty, padding) {
 
 /**
  * checks image for cacheability
- * 
+ *
  * @param image is an EMBImageInstance
  */
 RenderWebGL.prototype.isCacheable = function(image) {
@@ -1191,7 +1191,7 @@ RenderWebGL.prototype.isCacheable = function(image) {
 /**
  * assigns elements of dest to the elements of src by adding
  * dx to even elements and dy to odd
- * 
+ *
  * @param src contains list of numbers
  * @param dest is a list to be overwritten
  * @param offset is an index in dest
@@ -1207,7 +1207,7 @@ RenderWebGL.prototype.inc = function(src, dest, offset, dx, dy) {
 
 /**
  * allocates array of floats
- * 
+ *
  * @param name is array property name
  * @param buffer is either an array of an array size
  * @returns Float32Array instance
@@ -1220,7 +1220,7 @@ RenderWebGL.prototype.array = function(name, buffer) {
         size = buffer;
         buffer = null;
     }
-    var array = this.arrays[name]; 
+    var array = this.arrays[name];
     if (array == null) {
         array = new Float32Array(size);
         this.arrays[name] = array;
@@ -1247,7 +1247,7 @@ RenderWebGLImageCache.prototype.constructor = RenderWebGLImageCache;
 
 /**
  * WebGL image rendering cache
- * 
+ *
  * @param render is a RenderWebGL instance
  * @returns {RenderWebGLImageCache}
  */
@@ -1292,7 +1292,7 @@ RenderWebGLImageCache.prototype.grow = function(minCapacity) {
 
 /**
  * picks up the visible part of array
- * 
+ *
  * @param array is a typed array
  * @param size is a unit size of elements in the array
  * @returns array view
@@ -1303,7 +1303,7 @@ RenderWebGLImageCache.prototype.trim = function(array, size) {
 
 /**
  * expand triangles strip into triangles
- * 
+ *
  * @param src is the source array that contains a strip of 2 triangles
  * @param dest is an array of triangles
  */
@@ -1322,7 +1322,7 @@ RenderWebGLImageCache.prototype.expand = function(src, dest) {
 
 /**
  * appends data about a new image and flushes the cache if necessary
- * 
+ *
  * @param image is a drawable image
  * @param verticesArray is an array of vertices
  * @param coordinatesArray is an array of coordinates
@@ -1347,7 +1347,7 @@ RenderWebGLImageCache.prototype.append = function(image, verticesArray, coordina
         }
         this.imageCacheSize++;
     }
-    // image is cached - now we need to put the data into arrays 
+    // image is cached - now we need to put the data into arrays
     this.grow(this.size + 1);
     this.expand(verticesArray, this.verticesArray);
     this.expand(coordinatesArray, this.coordinatesArray);
@@ -1362,7 +1362,7 @@ RenderWebGLImageCache.prototype.flush = function() {
         // resolve arrays
         var verticesArray = this.trim(this.verticesArray, 2 * 6);
         var coordinatesArray = this.trim(this.coordinatesArray, 2 * 6);
-        
+
         with (this.render) {
             // bind attributes (textures has already been bound)
             bindAttribute(cachingShader.aPositionAttribute, verticesBuffer, verticesArray);
@@ -1370,7 +1370,7 @@ RenderWebGLImageCache.prototype.flush = function() {
             // draw images
             gl.drawArrays(gl.TRIANGLES, 0, vertexCount(verticesArray));
         }
-        
+
         // reset the state
         this.imageCache = {};
         this.imageCacheSize = 0;
@@ -1387,7 +1387,7 @@ RenderWebGLLayer.prototype.constructor = RenderWebGLLayer;
 
 /**
  * base WebGL layer cache class
- * 
+ *
  * @param render is a RenderWebGL instance
  * @param layer is a RenderLayer instance
  * @returns {RenderWebGLLayer}
@@ -1443,7 +1443,7 @@ RenderWebGLLayer.prototype.populate = function() {
 
 /**
  * activates shader and binds vertices and coordinates
- * 
+ *
  * @param x is the offset
  * @param y is the offset
  */
@@ -1485,7 +1485,7 @@ RenderWebGLTileLayer.prototype.constructor = RenderWebGLTileLayer;
 
 /**
  * creates WebGL render layer cache object
- * 
+ *
  * @returns {RenderWebGL}
  */
 function RenderWebGLTileLayer(render, layer) {
@@ -1499,7 +1499,7 @@ function RenderWebGLTileLayer(render, layer) {
 
 /**
  * ensures that there is enough space in the elements array
- * 
+ *
  * @param minCapacity is number
  */
 RenderWebGLTileLayer.prototype.grow = function(minCapacity) {
@@ -1517,7 +1517,7 @@ RenderWebGLTileLayer.prototype.grow = function(minCapacity) {
 
 /**
  * pushes index into elements array
- * 
+ *
  * @param index is an 16 bit unsigned integer
  */
 RenderWebGLTileLayer.prototype.push = function(first, size) {
@@ -1553,7 +1553,7 @@ RenderWebGLTileLayer.prototype.elements = function() {
 
 /**
  * puts indexes of all tile images in the range into the elements array
- * 
+ *
  * @param x is the first tile horizontal index
  * @param y is the first tile vertical index
  * @param nx is number of horizontal tiles
@@ -1570,7 +1570,7 @@ RenderWebGLTileLayer.prototype.select = function(x, y, nx, ny) {
 
 /**
  * draws a layer with given offset
- * 
+ *
  * @param x is the offset
  * @param y is the offset
  */
@@ -1610,7 +1610,7 @@ RenderWebGLSpriteLayer.prototype.constructor = RenderWebGLSpriteLayer;
 
 /**
  * creates WebGL render layer cache object
- * 
+ *
  * @returns {RenderWebGL}
  */
 function RenderWebGLSpriteLayer(render, layer) {
@@ -1645,7 +1645,7 @@ RenderWebGLSpriteLayer.prototype.populate = function() {
 
 /**
  * draws a layer with given offset
- * 
+ *
  * @param x is the offset
  * @param y is the offset
  */

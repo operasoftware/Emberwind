@@ -25,7 +25,7 @@ GUIHeadsUp.prototype.init = function() {
 
 	this.objectiveDisp = new GUIObjectiveDisplay();
 
-	this.acornDisp = null; //todo: = new GUIAcornDisplay();
+	this.acornDisp = new GUIAcornDisplay();
 
 	this.scoreDisp = new GUIScoreDisplay();
 
@@ -94,11 +94,13 @@ GUIHeadsUp.prototype.update = function(dt) {
 };
 
 GUIHeadsUp.prototype.openRightBubble = function(obj, prio, cue, who, length) {
-	//todo
+	var idolInfo = obj.getIdolInfo();
+	this.healthBarRight.setIdolInfo(idolInfo, EmotionType.kEmoteNormal, prio, length, who, cue);
 };
 
 GUIHeadsUp.prototype.openLeftBubble = function(obj, prio, cue, who, length) {
-	//todo
+	var idolInfo = obj.getIdolInfo();
+	this.healthBarLeft.setIdolInfo(idolInfo, EmotionType.kEmoteNormal, prio, length, who, cue);
 };
 
 GUIHeadsUp.prototype.show = function(s) {
@@ -194,38 +196,7 @@ function GUIHealthBar(left, gold) {
 	this.iconGem[GemType.kGemRed] = dep.getImage(kGUIHealthBar, "idol_gem_red");
 	this.iconGem[GemType.kGemYellow] = null;
 
-	// todo: Particle stuff start
-	if (false) {
-		this.pfxAccumTime = 0;
-		this.rayImage = dep.getImage("ParticleDoubleRay", "default");
-
-		var j = new KeyedParameter(KeyedParameter.prototype.kConstant, KeyedParameter.prototype.kConstant);
-		j.insertKey(0.0, Math.sin(0));
-		j.insertKey(0.1, Math.sin(0.1 * Math.PI));
-		j.insertKey(0.2, Math.sin(0.2 * Math.PI));
-		j.insertKey(0.3, Math.sin(0.3 * Math.PI));
-		j.insertKey(0.4, Math.sin(0.4 * Math.PI));
-		j.insertKey(0.5, Math.sin(0.5 * Math.PI));
-		j.insertKey(0.6, Math.sin(0.6 * Math.PI));
-		j.insertKey(0.7, Math.sin(0.7 * Math.PI));
-		j.insertKey(0.8, Math.sin(0.8 * Math.PI));
-		j.insertKey(0.9, Math.sin(0.9 * Math.PI));
-		j.insertKey(1.0, Math.sin(Math.PI));
-
-		this.pbuffer = new ParticleBuffer(kParticleStride, 200, kParticleLife, kParticleDT, ParticleBuffer.prototype.kReturnOldest);
-		this.pEmitter1 = new PointEmitter(pbuffer, initRanges, 1.5, 0, 0, 0, 0, 0, 0, 0);
-		this.pbuffer.addEmitter(pEmitter1);
-		this.pEmitter2 = new PointEmitter(pbuffer, initRangesW, 0.25, 0, 0, 0, 0, 0, 0, 0);
-		this.pbuffer.addEmitter(pEmitter2);
-		this.pbuffer.addModifier(new SetKeyedParam(j, kOpacityOffset));
-
-		// Update the rotation from the rotationspeed (rot = rot + dt * rotspeed)
-		pbuffer.addModifier(new AddMultipliedParam(kParticleDT, kRotationSpeedOffset, kRotationOffset));
-
-		pEmitter1.stop();
-		pEmitter2.stop();
-	}
-	// Particle stuff end
+	// todo: Particle stuff
 
 	var kCharacterIcons = "character_icons";
 	this.idol[EmotionType.kEmoteNormal] = [];
@@ -500,7 +471,7 @@ GUIHealthBar.prototype.update = function(dt) {
 		}
 	}
 
-	if (this.bubble.isOpen()) {
+	if (this.bubble.isOpen) {
 		if (this.talkLeft > 0)
 			this.talkLeft -= dt;
 		else if (this.nextTalk > 0) {
@@ -544,8 +515,10 @@ GUIHealthBar.prototype.draw = function(render, x, y) {
 	var ypos = 48;
 	var dir = this.left ? 1 : -1;
 
-	if (this.cacheNeedsUpdate)
+	if (this.cacheNeedsUpdate) {
 		this.cacheRender.clear();
+		this.lateDrawHealth = -1;
+	}
 
 	if (this.brownie != BrownieType.kBrownieMax && this.cacheNeedsUpdate) {
 		var extended = new Vec2(-26, -52);
@@ -668,7 +641,7 @@ GUIHealthBar.prototype.draw = function(render, x, y) {
 	if (this.lateDrawIdol) {
 		if (this.idolIdle[idolInfo.emoteType][idolInfo.idolType] != null && this.blinkLeft > 0)
 			render.drawImage(this.idolIdle[idolInfo.emoteType][idolInfo.idolType], x, y, 0, true);
-		if (this.bubble.isOpen() && this.idolTalk[idolInfo.emoteType][idolInfo.idolType] != null && this.talkLeft > 0)
+		if (this.bubble.isOpen && this.idolTalk[idolInfo.emoteType][idolInfo.idolType] != null && this.talkLeft > 0)
 			render.drawImage(this.idolTalk[idolInfo.emoteType][idolInfo.idolType], x, y, 0, true);
 	}
 
@@ -711,7 +684,7 @@ GUIHealthBar.prototype.setIdolInfo = function(idolInfo, et, prio, dispTime, titl
 			break;
 	}
 
-	if (hpFlag)
+	if (hpFlag !== null)
 		entry.showHP = hpFlag;
 
 	entry.priority = prio;
@@ -741,21 +714,16 @@ GUIHealthBar.prototype.removePermanentIdol = function(openbubble) {
 
 	var firstEntryRemoved = false;
 
-	for (var key in this.idolEntries) {
-		if (this.idolEntries.hasOwnProperty(key)) {
-			var e = this.idolEntries[key];
-			if (e.timeLeft < 0) {
-				if (key == 0) {
-					firstEntryRemoved = true;
-					this.idolEntries.splice(key, 1);
-				}
-			} else {
-				if (firstEntryRemoved) {
-					if (this.idolEntries.length != 0 && this.idolEntries[0].cue.length != 0)
-						this.bubble.open(this.idolEntries[0].cue, this.idolEntries[0].title, this.idolEntries[0].timeLeft);
-				}
-			}
+	for (var i = 0; i < this.idolEntries.length; i++) {
+		var e = this.idolEntries[i];
+		if (e.timeLeft < 0) {
+			if (i == 0) firstEntryRemoved = true;
+			this.idolEntries.splice(i, 1);
 		}
+	}
+	if (firstEntryRemoved) {
+		if (this.idolEntries.length != 0 && this.idolEntries[0].cue.length != 0)
+			this.bubble.open(this.idolEntries[0].cue, this.idolEntries[0].title, this.idolEntries[0].timeLeft);
 	}
 };
 
@@ -776,13 +744,31 @@ GUIHealthBar.prototype.setBrownie = function(b, coolDown, currState, pixieTime) 
 
 // ----------------------------------------------------------------------------
 
+function ScoreObserver() {
+}
+;
+
+ScoreObserver.prototype.onScoreSet = function () {
+};
+
+ScoreObserver.prototype.onAcornsSet = function () {
+};
+
+ScoreObserver.prototype.onMultiplierSet = function () {
+};
+
+// ----------------------------------------------------------------------------
+
 function GUIScoreDisplay() {
 	this.txt = new Text();
 	this.txt.set("0", "ScoreDisplayFont");
 }
 
+GUIScoreDisplay.prototype = new ScoreObserver();
+GUIScoreDisplay.prototype.constructor = GUIScoreDisplay;
+
 GUIScoreDisplay.prototype.onScoreSet = function (s) {
-	this.txt.set(s, "ScoreDisplayFont");
+	this.txt.set(formatScore(s), "ScoreDisplayFont");
 };
 
 GUIScoreDisplay.prototype.draw = function (render, x, y) {
@@ -823,15 +809,15 @@ function GUITextBubble(left, wWidth) {
 	this.frame = null;
 	this.text = new Text();
 	this.titleText = new Text();
-	this.open = false;
+	this.isOpen = false;
 
 	this.titleX = 17;
 	this.titleY = 6;
 
 	this.xminOff = 12;
-	this.xmaxOff = 90;
-	this.yminOff = 30;
-	this.ymaxOff = 65;
+	this.xmaxOff = 70;
+	this.yminOff = 15;
+	this.ymaxOff = 55;
 
 	var source = left ? "TextBubbleLeft" : "TextBubbleRight";
 
@@ -867,29 +853,26 @@ GUITextBubble.prototype.open = function(txt, title, timeTC) {
 	this.frame.setInteriorSize((r.width > titleRect.width ? r.width : titleRect.width) - this.safeX,
 			r.height - this.safeY);
 	var interior = this.frame.getInteriorArea();
-	interior.x0 += this.xminOff;
-	interior.x1 += this.xmaxOff;
-	interior.y0 += this.yminOff;
-	interior.y1 += this.ymaxOff;
+	interior = new Rectf(interior.x0 + this.xminOff, interior.y0 + this.yminOff, interior.x1 + this.xmaxOff, interior.y1 + this.ymaxOff);
 
 	this.textX = interior.x0 + (interior.width - r.width) / 2;
 	this.textY = interior.y0 + (interior.height - r.height) / 2;
 
-	if (!this.open) {
+	if (!this.isOpen) {
 		app.audio.playFX(this.openSound);
-		this.open = true;
+		this.isOpen = true;
 	}
 	this.timeToClose = timeTC;
 };
 
 GUITextBubble.prototype.close = function() {
-	this.open = false;
+	this.isOpen = false;
 };
 
 GUITextBubble.prototype.draw = function(render, x, y) {
-	if (!this.open) return;
-	var offsetX = this.left ? 0 : -this.frame.textureWidth;
-	var offsetY = -this.frame.textureHeight;
+	if (!this.isOpen) return;
+	var offsetX = this.left ? 0 : -this.frame.getWidth();
+	var offsetY = -this.frame.getHeight();
 
 	this.frame.draw(render, offsetX + x, offsetY + y);
 	this.text.draw(render, offsetX + x + this.textX, offsetY + y + this.textY);
@@ -897,14 +880,10 @@ GUITextBubble.prototype.draw = function(render, x, y) {
 };
 
 GUITextBubble.prototype.update = function(dt) {
-	if (this.open) {
+	if (this.isOpen) {
 		this.timeToClose -= dt;
-		this.open = this.timeToClose > 0;
+		this.isOpen = this.timeToClose > 0;
 	}
-};
-
-GUITextBubble.prototype.isOpen = function() {
-	return this.open;
 };
 
 // ----------------------------------------------------------------------------
@@ -1050,9 +1029,10 @@ Text.prototype.getRect = function() {
 	return new Rectf(0, 0, this.canvas.width, this.canvas.height);
 };
 
-Text.prototype.draw = function(render, x, y) {
+Text.prototype.draw = function(render, x, y, alpha) {
+	alpha = alpha == undefined ? 1 : alpha;
 	if (this.canvas != null)
-		render.drawText(this.canvas, x, y, 1);
+		render.drawText(this.canvas, x, y, alpha);
 };
 
 // ----------------------------------------------------------------------------
@@ -1087,7 +1067,7 @@ GUIObjectiveDisplay.prototype.draw = function(render, x, y) {
 			render.drawImage(this.arrow, x + 43 + Math.sin(this.arrowParam) * 5, y + 8);
 		} else if (this.numObjectives != 0) {
 			render.drawImage(this.house, x + 9, y + 2);
-			this.text.draw(render, x + 47, y + 16);
+			this.text.draw(render, x + 47, y + 16 + 2);
 		}
 	}
 };
@@ -1190,8 +1170,8 @@ GUIObjectiveArrow.prototype.draw = function(render, x, y) {
 			}
 		}
 
-		if(p != null) p = p.intersectionPoint;
-		else p = new Vec2(0,0);
+		if (p != null) p = p.intersectionPoint;
+		else p = new Vec2(0, 0);
 
 		var sOff = p.sub(new Vec2(fWidth / 2, fHeight / 2));
 		var sMag = sOff.Magnitude();
@@ -1209,14 +1189,14 @@ GUIObjectiveArrow.prototype.draw = function(render, x, y) {
 };
 
 GUIObjectiveArrow.prototype.update = function(dt) {
-	if (this.displayArrow){
+	if (this.displayArrow) {
 		this.arrowTintParam += dt * Math.PI * 3;
 		this.arrowAnimateParam += dt * Math.PI * 2;
 	}
 };
 
 GUIObjectiveArrow.prototype.showTargetArrow = function(tgt) {
-	this.displayArrow = true
+	this.displayArrow = true;
 	this.targetPoint = tgt;
 };
 
@@ -1224,3 +1204,148 @@ GUIObjectiveArrow.prototype.showTargetArrow = function(tgt) {
 GUIObjectiveArrow.prototype.hideTargetArrow = function() {
 	this.displayArrow = false;
 };
+
+// ----------------------------------------------------------------------------
+
+function GUIAcornDisplay() {
+	this.numAcorns = 0;
+	this.txt = new Text();
+	this.txt.set("", "AcornDisplayFont");
+	this.mulTxt = new Text();
+	this.mulTxt.set("", "AcornDisplayFont");
+	this.rattleIndex = 10;
+	this.mode = GUIAcornDisplay.Modes.kAcorn;
+	this.multiplier = 1;
+	this.multiplierFadeTime = 0;
+
+	var depot = ResourceDepot.getInstance();
+	this.acorn = depot.getImage("acorn_display", "acorn_normal");
+	this.frame = depot.getImage("acorn_display", "acorn_frame");
+	this.effect = depot.getImage("acorn_display", "acorn_shine");
+	this.cane = depot.getImage("acorn_display", "kindle_stick");
+	this.healthdot = depot.getImage("acorn_display", "kindle_health");
+	this.mulImg = depot.getImage("acorn_display", "multiplier");
+
+	this.dirty = true;
+	this.cacheCanvas = new RenderCanvas(document.createElement("canvas"), 1);
+	this.cacheCanvas.canvas.width = this.frame.width;
+	this.cacheCanvas.canvas.height = this.frame.height;
+}
+
+GUIAcornDisplay.prototype = new ScoreObserver();
+GUIAcornDisplay.prototype.constructor = GUIAcornDisplay;
+
+GUIAcornDisplay.Modes = { kAcorn : 0,
+	kMultiplier : 1,
+	kStick : 2,
+	kHealth : 3 };
+
+GUIAcornDisplay.kMulFadeTime = 2;
+
+GUIAcornDisplay.rattleOffsets = [ new Vec2(3, -1),
+	new Vec2(3, -2),
+	new Vec2(2, -3),
+	new Vec2(1, -2),
+	new Vec2(-1, -1),
+	new Vec2(-2, -1),
+	new Vec2(-1, -2),
+	new Vec2(1, -1),
+	new Vec2(2, -1),
+	new Vec2(1, 0),
+	new Vec2(0, 0) ];
+
+GUIAcornDisplay.prototype.setDisplayMode = function (mode) {
+	this.mode = mode;
+};
+
+GUIAcornDisplay.prototype.onAcornsSet = function (a) {
+	if (this.numAcorns != a && a != 0) {
+		this.rattleIndex = 0;
+	}
+	this.txt.set(a, "AcornDisplayFont");
+	this.dirty = true;
+};
+
+GUIAcornDisplay.prototype.onMultiplierSet = function (m) {
+	if (this.multiplier != m && m != 0) {
+		this.rattleIndex = 0;
+	}
+	this.multiplier = m;
+	this.mulTxt.set(this.multiplier.toFixed(1), "AcornDisplayFont");
+	this.multiplierFadeTime = GUIAcornDisplay.kMulFadeTime;
+	this.mode = GUIAcornDisplay.Modes.kMultiplier;
+
+	this.dirty = true;
+};
+
+GUIAcornDisplay.prototype.draw = function (render, x, y) {
+	if (this.dirty) {
+		this.refresh();
+	}
+
+	render.drawCanvas(this.cacheCanvas.canvas, x - this.frame.width / 2, y);
+};
+
+GUIAcornDisplay.prototype.refresh = function () {
+	var r = this.cacheCanvas;
+	var c = Math.floor(r.canvas.width / 2);
+	var alpha = this.multiplierFadeTime * 1 / (GUIAcornDisplay.kMulFadeTime * 0.2);
+	var white = (this.multiplierFadeTime - GUIAcornDisplay.kMulFadeTime * 0.8) / (GUIAcornDisplay.kMulFadeTime * 0.2);
+
+	r.clear();
+
+	r.drawImage(this.frame, 0, 0, 0, false);
+
+	switch (this.mode) {
+		case GUIAcornDisplay.Modes.kStick:
+			r.drawImage(this.effect, c, 55, 0, true);
+			r.drawImage(this.cane, c, 55, 0, true);
+			break;
+		case GUIAcornDisplay.Modes.kHealth:
+			r.drawImage(this.effect, c, 55, 0, true);
+			r.drawImage(this.healthdot, c, 55, 0, true);
+			break;
+		case GUIAcornDisplay.Modes.kMultiplier:
+			if (this.multiplierFadeTime < GUIAcornDisplay.kMulFadeTime * 0.2) {
+				r.drawImage(this.acorn,
+						c - Math.floor(this.acorn.width / 2)
+								+ GUIAcornDisplay.rattleOffsets[this.rattleIndex].x,
+						35 + GUIAcornDisplay.rattleOffsets[this.rattleIndex].y,
+						0, false, 1 - alpha);
+				r.drawImage(this.mulImg, c + 1, 55, 0, true, alpha);
+			} else if (this.multiplierFadeTime > GUIAcornDisplay.kMulFadeTime * 0.8) {
+				r.drawImage(this.mulImg, c + 1, 55, 0, true, 1, new Pixel32(255, 255, 255, white * 255));
+			} else {
+				r.drawImage(this.mulImg, c + 1, 55, 0, true);
+			}
+			this.mulTxt.draw(r, c - Math.floor(this.mulTxt.getRect().width / 2) + 5, 4);
+			break;
+		case GUIAcornDisplay.Modes.kAcorn:
+		default:
+			r.drawImage(this.acorn,
+					c - Math.floor(this.acorn.width / 2)
+							+ GUIAcornDisplay.rattleOffsets[this.rattleIndex].x,
+					35 + GUIAcornDisplay.rattleOffsets[this.rattleIndex].y,
+					0);
+			this.txt.draw(r, c - Math.floor(this.txt.getRect().width / 2) + 5, 4);
+			break;
+	}
+
+	this.dirty = false;
+};
+
+GUIAcornDisplay.prototype.update = function (dt) {
+	if (this.rattleIndex < 10) {
+		this.rattleIndex = Math.min(10, Math.floor(this.rattleIndex + 60 * dt));
+		this.dirty = true;
+	}
+
+	if (this.multiplierFadeTime > 0) {
+		this.multiplierFadeTime -= dt;
+		if (this.multiplierFadeTime <= 0) {
+			this.mode = GUIAcornDisplay.Modes.kAcorn;
+		}
+		this.dirty = true;
+	}
+};
+

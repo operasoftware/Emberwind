@@ -175,7 +175,7 @@ RenderCanvas.prototype.drawImage = function(image, x, y, angle, centered, alpha,
 
 	if (!this.frontToBack) this.drawEMBImage(image, x, y, angle !== 0, this.context);
 
-	if (tint != null) {
+	if (tint != null && tint.a != 0) {
 		// On the second canvas draw the image and use its alpha channel and
 		// draw a rectangle over it with the tint color.
 		this.secondContext.clearRect(0, 0, this.secondCanvas.width, this.secondCanvas.height);
@@ -256,11 +256,17 @@ RenderCanvas.prototype.clear = function(color) {
  * @param alpha The opacity level of the image.
  */
 RenderCanvas.prototype.drawTilingImage = function(image, x, y, htiles, vtiles, alpha) {
+	alpha = alpha === undefined ? 1 : alpha;
 	this.context.save();
 	if (alpha !== 1) this.context.globalAlpha = alpha;
 	for (var i = 0; i < htiles; i++) {
 		for (var j = 0; j < vtiles; j++) {
-			this.drawEMBImage(image, x + image.textureWidth * i - image.textureWidth / 2, y + image.textureHeight * j - image.textureHeight / 2, false, this.context);
+			this.context.save();
+			var xPos = x + image.textureWidth * i - image.textureWidth / 2;
+			var yPos = y + image.textureHeight * j - image.textureHeight / 2;
+			this.context.translate(xPos, yPos);
+			this.drawEMBImage(image, xPos, yPos, false, this.context);
+			this.context.restore();
 		}
 	}
 	this.context.restore();
@@ -483,4 +489,19 @@ RenderCanvas.prototype.drawLayer = function(layer, ox, oy, x, y, nx, ny) {
 	} else {
 		assert(false);
 	}
+};
+
+RenderCanvas.prototype.pushClipRect = function(r) {
+    this.context.save();
+	this.context.beginPath();
+	this.context.moveTo(r.x0, r.y0);
+	this.context.lineTo(r.x0, r.y1);
+	this.context.lineTo(r.x1, r.y1);
+	this.context.lineTo(r.x1, r.y0);
+	this.context.lineTo(r.x0, r.y0);
+	this.context.clip();
+};
+
+RenderCanvas.prototype.popClipRect = function() {
+    this.context.restore();
 };

@@ -1,0 +1,181 @@
+[
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Graham! Was um Himmels Willen ist hier los!?",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Kobolde!",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Kobolde!? Du machst Witze.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Gr\u00fcntal wird von Kobolden belagert, die Dorfbewohner brauchen deine Hilfe.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Keine Sorge, Wick und ich werden uns darum k\u00fcmmern.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "enter",
+		"cues": [
+			{
+				"text": "Kriegsschiffe der Kobolde feuern F\u00e4sser in die Stadt.",
+				"who": "Wick",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Sieht nach einer richtigen Invasion aus.",
+				"who": "Kindle",
+				"pause": 0.5,
+				"time": 3.0
+			},
+			{
+				"text": "Koboldalarm! Holt sie euch!",
+				"who": "Scout",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "stage1"
+	},
+	{
+		"trigger": "man3",
+		"cues": [
+			{
+				"text": "Bruno, rette die Einwohner von Gr\u00fcntal.",
+				"who": "Graham",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_0_H1"
+	},
+	{
+		"trigger": "girl_1",
+		"cues": [
+			{
+				"text": "Ich habe einen alten Wunschbrunnen im Garten.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H1"
+	},
+	{
+		"trigger": "male_1",
+		"cues": [
+			{
+				"text": "Du musst dich beim Schlagen nach vorne beugen, um etwas auszurichten.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H2"
+	},
+	{
+		"trigger": "male_2",
+		"cues": [
+			{
+				"text": "Forscher tr\u00e4umen von Donguri.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_1_H3"
+	},
+	{
+		"trigger": "male_3",
+		"cues": [
+			{
+				"text": "Alle H\u00e4user, in denen das Licht brennt, sind gesch\u00fctzt.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H1"
+	},
+	{
+		"trigger": "male_4",
+		"cues": [
+			{
+				"text": "Gl\u00fchw\u00fcrmchen gl\u00fchen, wenn Geheimnisse in der N\u00e4he liegen.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H2"
+	},
+	{
+		"trigger": "girl_2",
+		"cues": [
+			{
+				"text": "Beleidige die Heinzelm\u00e4nnchen nicht, wenn du ihre Hilfe ben\u00f6tigst.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H3"
+	},
+	{
+		"trigger": "girl_3",
+		"cues": [
+			{
+				"text": "Meine Freundin Susi ist ins Dorf Mimiga gezogen.",
+				"who": "Villager2",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	},
+	{
+		"trigger": "male_5",
+		"cues": [
+			{
+				"text": "Dein Stock wird in der Hitze des Gefechts mehrfach zuschlagen.",
+				"who": "Villager1",
+				"pause": 0.5,
+				"time": 3.0
+			}
+		],
+		"triggered": false,
+		"stage": "Stage_2_H4"
+	}
+]

@@ -34,7 +34,7 @@ function GameParticle() {
  * @returns Vec2
  */
 GameParticle.prototype.getPos = function() {
-	return this.startPos;
+	return this.startPos.copy();
 };
 
 /**
@@ -53,7 +53,7 @@ GameParticle.prototype.getStartPos = function() {
  * @param dropToGround is boolean
  */
 GameParticle.prototype.setPos = function(pos, dropToGround) {
-	assert(false);
+	//assert(false);
 };
 
 /**
@@ -343,7 +343,7 @@ GameObject.prototype.setNonInteractive = function() {
  * @returns {Boolean}
  */
 GameObject.prototype.hasInteractTarget = function(type) {
-	type = type === undefined ? 0xffffffff : type; // todo: use 8 bytes?
+	type = type === undefined ? 0xffffffff : type;
 	for (var i = 0; i < this.interactTargets.length; i++) {
 		if (this.interactTargets[i].gameObject.getType() & type) {
 			return true;
@@ -476,8 +476,9 @@ GameObjects.prototype.addChild = function (obj) {
 
 GameObjects.prototype.draw = function (render, x, y) {
 	for (var i = 0; i < this.children.length; i++) {
-		if(this.children[i].onScreen && this.children[i].enabled)
-			this.children[i].draw(render, x, y);
+		var child = this.children[i];
+		if(child.onScreen && child.enabled)
+			child.draw(render, x, y);
 	}
 };
 

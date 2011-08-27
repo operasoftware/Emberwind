@@ -1,5 +1,3 @@
-
-
 /**
  * Gremlin object.
  */
@@ -11,7 +9,7 @@ function Gremlin() {
 	this.leader = null;
 	this.type = Gremlin.types.kGremStandard;
 	this.animCallback = null;
-	this.extraLoot = null;
+	this.extraLoot = [];
 
 	this.awarenessTarget = null;
 	this.combatAwarenessTarget = null;
@@ -41,11 +39,11 @@ function Gremlin() {
 		Gremlin.states.kStateAwaken, GremAwakenState,
 		Gremlin.states.kStateLaugh, GremLaughState,
 		Gremlin.states.kStateJump, GremJumpState,
-		Gremlin.states.kStateFall, GremFallState
+		Gremlin.states.kStateFall, GremFallState,
 		//Gremlin.states.kStateBlock, GremBlockState,
 		//Gremlin.states.kStateUnblock, GremUnblockState,
 		//Gremlin.states.kStateThrow, GremThrowState,
-		//Gremlin.states.kStatePursue, GremPursueState,
+		Gremlin.states.kStatePursue, GremPursueState
 		//Gremlin.states.kStateTossed, GremTossedState,
 		//Gremlin.states.kStateBubbled, GremBubbledState
 	];
@@ -184,7 +182,7 @@ Gremlin.prototype.init = function(reinit) {
 
 	HittableGameObject.prototype.init.call(this, reinit);
 
-	switch(this.type) {
+	switch (this.type) {
 		case Gremlin.types.kGremStandard:
 			this.spawnType = DropTableType.kDTSoupGrem;
 			break;
@@ -396,7 +394,7 @@ Gremlin.prototype.init = function(reinit) {
 	this.attackTrigger = new TriggerVolume("GremAttack", new Rectf(0, -30, 50, -20), this, null, "pattack");
 	this.awarenessTrigger = new TriggerVolume("awareness", this.awarenessRect, this,
 			createCallback(this.onAwareness, this), "enter", "exit");
-	this.combatAwarenessTrigger = new TriggerVolume("comabt_awareness", this.combatAwarenessRect, this,
+	this.combatAwarenessTrigger = new TriggerVolume("combat_awareness", this.combatAwarenessRect, this,
 			createCallback(this.onCombatAwareness, this), "enter", "exit");
 	this.laughTrigger = new TriggerVolume("laugh_area", new Rectf(-300, -200, 300, 200), this, null, "laugh");
 
@@ -585,7 +583,7 @@ Gremlin.prototype.onTrigger = function(param, volume, object) {
 		} else {
 			if (hitByPlayer)
 				game.addChainHit();
-			var critHit = randomRange(0, 99) < 5;
+			var critHit = randomRange(0, 99) < 7;
 			this.hit(param == "damage" ? 1 : game.getCurrentPower() + 1, fromLeft, false, false, critHit);
 		}
 	} else if (param == "stun" || param == "stun_pwr") {
@@ -624,8 +622,8 @@ Gremlin.prototype.setDamagedState = function(fromLeft, hitsTaken) {
 			this.spawnPickups(hitsTaken);
 		else {
 			return;
-			// todo: make gameobjectfactory
-			var projectile = GameObjectFactory.CreateObject("pickupprojectile", kPickupGoldenAcorn);
+			// todo: make projectile!
+			var projectile = null //new Projectile();
 			projectile.setType(kPickupGoldenAcorn);
 			projectile.setCustomType(PickupProjectile.types.kBomb, true);
 			projectile.init(false);
@@ -638,7 +636,7 @@ Gremlin.prototype.setDamagedState = function(fromLeft, hitsTaken) {
 };
 
 Gremlin.prototype.setKnockedOutState = function(fromLeft, hitsTaken, tossed) {
-	app.game.getTallyInfo().gremlins++
+	app.game.getTallyInfo().gremlins++;
 	this.fsm.setState(Gremlin.states.kStateKnockedOut, tossed ? Gremlin.messages.kPETossed :
 			(fromLeft ? Gremlin.messages.kPEHitFromLeft : -1));
 	if (this.type == Gremlin.types.kGremThief)
@@ -672,6 +670,7 @@ Gremlin.prototype.setBurntState = function(fromLeft, hitsTaken) {
 	else {
 		app.game.getTallyInfo().gremlins++;
 		this.fsm.setState(Gremlin.states.kStateBurnt);
+		this.updateOffScreen = true;
 		if (this.type == Gremlin.types.kGremThief)
 			this.spawnPickups(1, true);
 		else
@@ -764,8 +763,7 @@ Gremlin.prototype.hasTurned = function() {
 /**
  * @param {String} param
  * @param {AnimationHandle} anim
- * @param {}
-		*/
+ */
 Gremlin.prototype.onAnimationEvent = function(param, anim) {
 	if (param == "stopped")
 		this.fsm.message(Gremlin.messages.kPEAnimStopped);
@@ -811,7 +809,7 @@ Gremlin.prototype.onAwareness = function(param, volume, object) {
 		} else if (this.type != Gremlin.types.kGremStandard && object.particle instanceof PlayerCharacter) {
 			this.awarenessTarget = object.particle;
 			this.fsm.message(Gremlin.messages.kPlayerEntered);
-		} else if (this.type == Gremlin.types.kGremBouncer && !this.hasLeader()) {
+		} else if (this.type == Gremlin.types.kGremBouncer && !this.hasLeader() && object.particle instanceof Gremlin) {
 			var grem = object.particle;
 			if (grem && grem.type == Gremlin.types.kGremBouncer && grem.isLeader()) {
 				this.disbandFollowers();
@@ -886,7 +884,7 @@ Gremlin.prototype.setNewWalkTarget = function(abandonCurrent, randomWalk) {
  * @param {GameObject} obj
  */
 Gremlin.prototype.setWalkTarget = function(obj) {
-	this.walkTarget = new Vec2(obj.getPos());
+	this.walkTarget = obj.getPos().copy();
 };
 
 /**
@@ -997,8 +995,7 @@ Gremlin.prototype.pickLeader = function() {
 
 	var r = this.awarenessTrigger.getWorldSpaceRect();
 
-	var gremlins = [];
-	// todo: gremlins = app.game.currentStage.getGameObjectsByType("gremlin");
+	var gremlins = app.game.getGameObjectByType(Gremlin);
 
 	var g = null;
 	var bestDist = 0xfffffff;
@@ -1043,7 +1040,7 @@ Gremlin.prototype.disbandFollowers = function() {
 		if (follower.hasLeader)
 			follower.setLeader(null);
 		else
-			followers.slice(i, 1);
+			this.followers.slice(i, 1);
 	}
 };
 
@@ -1096,12 +1093,11 @@ Gremlin.prototype.shootProjectile = function() {
 
 Gremlin.prototype.isBunchedUp = function() {
 	var r = this.awarenessTrigger.getWorldSpaceRect();
-	var gremlins = [];
-	// todo: gremlins = app.game.currentStage.getGameObjectsByType("gremlin");
+	var gremlins = app.game.getGameObjectByType(Gremlin);
 
 	for (var i = 0; i < gremlins.length; i++) {
 		var grem = gremlins[i];
-		if (grem.enabled() && grem != this) {
+		if (grem.enabled && grem != this) {
 			var mag = grem.getPos().subNew(this.getPos()).Magnitude();
 			if (mag < 30) {
 				return true;
@@ -1124,21 +1120,40 @@ Gremlin.prototype.spawnPickups = function(count, spawnExtras) {
 	}
 
 	app.game.spawnPickupTable(this.spawnType, this.getPos().add(new Vec2(0, -20)), 0, 0, -250, -350, numLoot);
-	// TODO
-	//if (spawnExtras) {
-	//}
+	if (spawnExtras) {
+		for (var j = 0; j < this.extraLoot.length; j++) {
+			app.game.spawnPickupTable(this.extraLoot[j], this.getPos().add(new Vec2(0, -20)), -50, 50, -250, -350);
+		}
+		this.extraLoot = [];
+	}
 };
 
 Gremlin.prototype.getLootInAwareness = function() {
-	return null; // todo
+	if (this.awarenessTrigger === null)
+		return null;
+
+	var r = this.awarenessTrigger.getWorldSpaceRect();
+	var pickups = app.game.getGameObjectByType(Pickup, r);
+
+	var p = null;
+	var bestDist = 10000000;
+	for (var i = 0; i < pickups.length; i++) {
+		var pickup = pickups[i];
+		if (!pickup.isStatic) {
+			var mag = pickup.getPos().subNew(this.getPos()).Magnitude();
+			if (mag < bestDist) {
+				bestDist = mag;
+				p = pickup;
+			}
+		}
+	}
+	return p;
+};
+
+Gremlin.prototype.pushExtraLoot = function(l) {
+	this.extraLoot.push(l);
 };
 
 Gremlin.prototype.getIdolInfo = function() {
 	return new IdolInfo(IdolType.kIdolGoblin, GemType.kGemBlue, GemType.kGemBlue, MetalType.kMetalSilver);
 };
-
-
-//todo: only temporary 
-function Villager() {
-
-}
