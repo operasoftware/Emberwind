@@ -55532,6 +55532,10 @@
 		]
 	},
 	"resources": {
+		"overrideFonts" : {
+				"russian" : { "Allan" : "Cuprum"},
+				"polish" : { "Allan" : "Cuprum"}
+		},
 		"fonts": [
 			{
 				"outline_b": 0,

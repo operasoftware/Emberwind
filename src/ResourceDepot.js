@@ -169,8 +169,14 @@ ResourceDepot.prototype.readResources = function(data) {
 	this.sfx = obj.sfx;
 	this.music = obj.music;
 
+	var overrideFonts = obj.resources.overrideFonts;
 	for (var i = 0; i < obj.resources.fonts.length; i++) {
 		var f = obj.resources.fonts[i];
+		if (this.language in overrideFonts) {
+			if (f.font in overrideFonts[this.language]) {
+				f.font = overrideFonts[this.language][f.font];
+			}
+		}
 		this.fonts[f.id] = new Font(f);
 	}
 
