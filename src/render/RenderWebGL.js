@@ -642,9 +642,8 @@ RenderWebGL.prototype.drawTris = function(vertices, color) {
  */
 RenderWebGL.prototype.drawFilledTris = function(vertices, color) {
     assert(vertices.length % 6 == 0, "invalid number of vertices - they do not define a series of triangles");
-    // scale vertices
+    // resolve vertices
     var vertices = this.array("trisVerticesArray", vertices);
-    this.scale(vertices);
 
     // draw a bunch of triangles
     this.activateShader(this.noTextureShader);
@@ -1006,7 +1005,7 @@ RenderWebGL.prototype.updateScissor = function() {
     } else {
         // get canvas to native scaling
         var scale = this.scaleFactor, r = this.clips[this.clips.length - 1];
-        var x = r.x0 * scale, y = this.getHeight() - r.y1 * scale;
+        var x = r.x0 * scale, y = (this.getHeight() - r.y1) * scale;
         var w = r.width * scale, h = r.height * scale;
         this.gl.scissor(x, y, w, h);
         this.gl.enable(this.gl.SCISSOR_TEST);
@@ -1110,15 +1109,9 @@ RenderWebGL.prototype.rotate = function(matrix, img, angle, flipped) {
  * @param vertices is an array that holds (a,b) pairs
  */
 RenderWebGL.prototype.scale = function(vertices) {
-    assert(vertices.length % 2 == 0, "vertices array must have even number of values");
     if (this.scaleFactor != 1.0) {
-        var i, h = this.getHeight();
-        for (i = 0; i < vertices.length; i++) {
-            if (i % 2 == 0) {
-                vertices[i] = Math.ceil(this.scaleFactor * vertices[i]) / this.scaleFactor;
-            } else {
-                vertices[i] = h - Math.ceil(this.scaleFactor * (h - vertices[i])) / this.scaleFactor;
-            }
+        for (var i = 0; i < vertices.length; i++) {
+            vertices[i] = Math.ceil(this.scaleFactor * vertices[i]);
         }
     }
 };
@@ -1577,6 +1570,9 @@ RenderWebGLTileLayer.prototype.select = function(x, y, nx, ny) {
 RenderWebGLTileLayer.prototype.draw = function(isDrawFullLayer, x, y) {
     if (isDrawFullLayer || this.elementsCount > 0) {
         with (this.render) {
+            // Offset (camera) needs to be scaled
+            x = Math.ceil(x * scaleFactor);
+            y = Math.ceil(y * scaleFactor);
             // bind verticies and coordinates
             this.bind(x, y);
             // bind indices buffer
@@ -1651,6 +1647,9 @@ RenderWebGLSpriteLayer.prototype.populate = function() {
  */
 RenderWebGLSpriteLayer.prototype.draw = function(isFrontToBack, x, y) {
     with (this.render) {
+        // Offset (camera) needs to be scaled
+        x = Math.ceil(x * scaleFactor);
+        y = Math.ceil(y * scaleFactor);
         // bind verticies and coordinates
         this.bind(x, y);
         // bind indices buffer
@@ -1675,4 +1674,31 @@ RenderWebGLSpriteLayer.prototype.remove = function() {
     RenderWebGLLayer.prototype.remove.apply(this, arguments);
 };
 
+/**
+ * Set scale factor
+ *
+ * @param {Number} factor The factor that the scale should be changed with.
+ */
+RenderWebGL.prototype.setScaleFactor = function(factor) {
+    Render.prototype.setScaleFactor.call(this, factor);
+    this.evict();
+};
+
+/**
+ * Gets internal rendering resolution, fixes downscaling
+ *
+ * @returns width of the rendering area.
+ */
+RenderWebGL.prototype.getWidth = function() {
+	return 800;
+};
+
+/**
+ * Gets internal rendering resolution, fixes downscaling
+ *
+ * @returns height of the rendering area.
+ */
+RenderWebGL.prototype.getHeight = function() {
+	return 600;
+};
 

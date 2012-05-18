@@ -443,6 +443,7 @@ App.prototype.resize = function() {
 	var scale = newWidth / this.maxWidth;
 
 	if (this.render != null) {
+		this.render.reset(canvas.width, canvas.height);
 		this.render.setScaleFactor(Math.min(1, scale));
 	}
 
