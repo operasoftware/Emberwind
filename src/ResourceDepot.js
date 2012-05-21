@@ -463,10 +463,9 @@ function loadJSON(file, callback) {
 			if (request.status == 404)
 				console.log("ERROR: file '" + file + "' does not exist!");
 			else {
-				var len = parseInt(request.getResponseHeader("Content-Length"));
-				if (request.responseText.length !== len) {
+				var len = request.getResponseHeader("Content-Length");
+				if (len && request.responseText.length !== parseInt(len)) {
 					console.log(len, request.responseText.length);
-					// TODO
 					alert("An error occured while downloading Emberwind, please clear your cache and try again.");
 				}
 				else {
