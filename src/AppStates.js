@@ -81,12 +81,14 @@ DeveloperSplashState.constructor = DeveloperSplashState;
 
 DeveloperSplashState.prototype.enter = function(msg, fromState) {
 	this.host.canvas.onmousedown = createCallback(function(e) {
+		e.preventDefault();
 		this.skip = true;
 		this.host.input = new InputHandler(this.host.canvas, false);
 	}, this);
 	window.onkeydown = this.host.canvas.onmousedown;
 
 	this.host.canvas.ontouchstart = createCallback(function(e) {
+		e.preventDefault();
 		this.skip = true;
 		this.host.input = new InputHandler(this.host.canvas, true);
 		// Some units seem to send both touch and mousedown events, prevent
@@ -535,6 +537,7 @@ MainMenuState.constructor = MainMenuState;
 MainMenuState.prototype.enter = function(msg, fromState) {
 	if (this.doStartScreen) {
 		this.host.canvas.onmousedown = createCallback(function(e) {
+			e.preventDefault();
 			this.timeInactive = 0;
 			this.doStartScreen = true;
 			this.timeIntoStartScreen = 0.01;
@@ -545,6 +548,7 @@ MainMenuState.prototype.enter = function(msg, fromState) {
 		window.onkeydown = this.host.canvas.onmousedown;
 
 		this.host.canvas.ontouchstart = createCallback(function(e) {
+			e.preventDefault();
 			this.timeInactive = 0;
 			this.doStartScreen = true;
 			this.timeIntoStartScreen = 0.01;
@@ -957,6 +961,7 @@ IntroState.prototype.enter = function(msg, fromState) {
 		"atlas/gui/titlescreen2.png",
 		"atlas/no_c_red/titlescreen3.png",
 		"atlas/no_c_red/titlescreen4.png",
+		"atlas/no_c_red/storyboardintro.png",
 		"atlas/gui/titletext_html5.png",
 		"atlas/gui/titlescreen_wick_eyes.png",
 		"atlas/gui/titlescreen_kindle_eyes.png",

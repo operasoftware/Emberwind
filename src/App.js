@@ -236,7 +236,7 @@ App.prototype.update = function(dt) {
 
 	if (this.showSkipButton) {
 		if (this.useTouch) {
-			if (InputHandler.instance.touches.length != 0)
+			if (!InputHandler.instance.noTouches())
 				this.fsm.message("skip");
 		} else if (GameInput.instance.pressed(Buttons.attack) || GameInput.instance.pressed(Buttons.interact) || InputHandler.instance.mouse.left.down)
 			this.fsm.message("skip");

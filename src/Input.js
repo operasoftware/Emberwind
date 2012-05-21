@@ -228,6 +228,14 @@ InputHandler.prototype.update = function () {
 
 };
 
+InputHandler.prototype.noTouches = function () {
+	for (var t in this.touches) {
+			return false;
+	}
+
+	return true;
+};
+
 InputHandler.prototype.clickInCircle = function(x, y, r){
 	if (this.useTouch) {
 		for (var k in this.touches){
