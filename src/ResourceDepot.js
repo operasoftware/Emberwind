@@ -463,14 +463,7 @@ function loadJSON(file, callback) {
 			if (request.status == 404)
 				console.log("ERROR: file '" + file + "' does not exist!");
 			else {
-				var len = request.getResponseHeader("Content-Length");
-				if (len && request.responseText.length !== parseInt(len)) {
-					console.log(len, request.responseText.length);
-					alert("An error occured while downloading Emberwind, please clear your cache and try again.");
-				}
-				else {
-					callback(request.responseText);
-				}
+				callback(request.responseText);
 			}
 		}
 	};
